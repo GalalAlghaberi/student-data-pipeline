@@ -82,3 +82,39 @@ class TestCleanData:
         })
         result = clean_data(df)
         assert "Unknown" in result["city"].values
+
+
+class TestDefensiveBehavior:
+    """
+    Document the defensive behavior of clean_data.
+
+    Design decision: clean_data must be safe to call INDEPENDENTLY
+    of convert_data_types. When numeric columns still have string dtype,
+    clean_data should skip outlier/fill operations on them and log a
+    warning — not crash.
+    """
+
+    def test_clean_data_alone_does_not_crash_on_string_dtypes(self, dirty_df):
+        """clean_data must not raise if called without convert_data_types."""
+        result = clean_data(dirty_df)  # should not raise
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+
+    def test_clean_data_warns_on_non_numeric_columns(self, dirty_df, caplog):
+        """clean_data should log a warning when skipping non-numeric columns."""
+        import logging
+        with caplog.at_level(logging.WARNING, logger="src.transform_layer"):
+            clean_data(dirty_df)
+        messages = [rec.message for rec in caplog.records]
+        assert any("not numeric" in msg for msg in messages), (
+            f"Expected 'not numeric' warning, got: {messages}"
+        )
+
+    def test_full_pipeline_still_handles_outliers(self, dirty_df):
+        """After convert_data_types, clean_data MUST remove outliers."""
+        typed = convert_data_types(dirty_df)
+        result = clean_data(typed)
+        # After type conversion + cleaning, no outliers should remain
+        assert result["age"].dropna().between(16, 80).all()
+        assert result["gpa"].dropna().between(0, 4).all()
+        assert result["attendance"].dropna().between(0, 100).all()
