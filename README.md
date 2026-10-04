@@ -7,6 +7,9 @@
 [![SQLite](https://img.shields.io/badge/sqlite-3-blue)](https://www.sqlite.org/)
 [![Tests](https://img.shields.io/badge/tests-61%20passed-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
+
+**Current version: [2.0.0](CHANGELOG.md)** — see [CHANGELOG.md](CHANGELOG.md) for details.
 
 ---
 

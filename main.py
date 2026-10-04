@@ -27,6 +27,7 @@ from src.config import (
     EXIT_VALIDATION_ERROR,
     OUTPUT_FILE,
     RAW_FILE,
+    __version__,
 )
 from src.logging_setup import setup_logging
 from src.orchestrator import run_pipeline
@@ -46,6 +47,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "  python main.py --output /tmp/out.csv --verbose\n"
             "  python main.py --no-verify\n"
         ),
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
         "--raw", "-r", type=Path, default=RAW_FILE,
