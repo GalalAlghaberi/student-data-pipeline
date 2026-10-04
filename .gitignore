@@ -1,0 +1,48 @@
+# ─── Data (raw is tracked, processed is not) ───
+data/processed/*.csv
+data/processed/*.json
+!data/processed/.gitkeep
+
+# ─── Database ───
+data/*.db
+*.sqlite
+*.sqlite3
+
+# ─── Logs ───
+logs/*.log
+logs/*.log.*
+!logs/.gitkeep
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# ─── Testing ───
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ─── IDE ───
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+
+# ─── Jupyter ───
+.ipynb_checkpoints/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
