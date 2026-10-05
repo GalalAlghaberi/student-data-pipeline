@@ -1,13 +1,13 @@
 # Student Data Engineering Pipeline
 
-> **End-to-End Data Engineering Pipeline** — from raw CSV and relational databases to validated, ML-ready datasets, with SQL, SQLite, quality reporting, and full test coverage.
+> **End-to-End Data Engineering Pipeline** — from raw CSV and relational databases to validated, ML-ready datasets, with SQL, PostgreSQL, SQLite, quality reporting, and full test coverage.
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![Pandas](https://img.shields.io/badge/pandas-2.2%2B-green)](https://pandas.pydata.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue)](https://www.postgresql.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-3-blue)](https://www.sqlite.org/)
 [![Tests](https://img.shields.io/badge/tests-61%20passed-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
 
 **Current version: [2.0.0](CHANGELOG.md)** — see [CHANGELOG.md](CHANGELOG.md) for details.
 
@@ -15,12 +15,13 @@
 
 ## Overview
 
-This project demonstrates **production-grade Data Engineering** across two integrated units:
+This project demonstrates **production-grade Data Engineering** across three integrated units:
 
-- **Unit 1 — Data Engineering Fundamentals**: CSV-based ETL pipeline
-- **Unit 2 — Relational Databases & SQL**: SQLite + SQL extraction layer
+- **Unit 1 — Data Engineering Fundamentals**: CSV-based ETL pipeline (Python + Pandas)
+- **Unit 2 — Relational Databases & SQL**: PostgreSQL + SQLite extraction layer
+- **Unit 3 — Advanced SQL** *(in progress)*: Subqueries, CTEs, Window Functions
 
-Both pathways converge on the same goal: **producing validated, ML-ready datasets**.
+All pathways converge on the same goal: **producing validated, ML-ready datasets**.
 
 ---
 
@@ -33,10 +34,17 @@ CSV → LOAD → VALIDATE SCHEMA → CONVERT TYPES → CLEAN
     → VALIDATE FINAL → SAVE (CSV + SQLite) → QUALITY REPORT
 ```
 
-### Unit 2 — Database Layer (5 tables)
+### Unit 2 — Database Layer (5 tables, dual engine)
 
 ```
-university.db  →  SQL Queries  →  DataFrame  →  Validation  →  CSV
+PostgreSQL (primary)  →  SQL Queries  →  DataFrame  →  Validation  →  CSV
+SQLite     (fallback)  →  SQL Queries  →  DataFrame  →  Validation  →  CSV
+```
+
+### Unit 3 — Advanced SQL (in progress)
+
+```
+Analytics Layer: Subqueries + CTEs + CASE + Window Functions
 ```
 
 ---
@@ -63,22 +71,22 @@ university.db  →  SQL Queries  →  DataFrame  →  Validation  →  CSV
                     v
             [5] VALIDATE FINAL   validate_layer.validate_data
                     |
-            +-------+-------+
-            v               v
-        [6] SAVE        [7] SAVE
-            CSV             SQLite
-            +-------+-------+
-                    v
-            [8] REPORT           report_layer.generate_quality_report
-                    |
-                    v
-             ML-READY DATASET
+                    +-------+-------+
+                    v               v
+                [6] SAVE        [7] SAVE
+                    CSV             SQLite
+                    +-------+-------+
+                            v
+                    [8] REPORT          report_layer.generate_quality_report
+                            |
+                            v
+                     ML-READY DATASET
 ```
 
-### Unit 2 Database Layer
+### Unit 2 Database Layer (PostgreSQL + SQLite)
 
 ```
-   Relational Database (university.db)
+   Relational Database (PostgreSQL / SQLite)
                     |
                     v
             SQL Extraction (query_layer)
@@ -97,26 +105,38 @@ university.db  →  SQL Queries  →  DataFrame  →  Validation  →  CSV
 
 ## Quick Start
 
-### Install
+### Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Run Unit 1 Pipeline (CSV)
+### Unit 1 Pipeline (CSV)
 
 ```bash
 python main.py
 ```
 
-### Run Unit 2 (Database)
+### Unit 2 Database (SQLite — Python)
 
 ```bash
-# 1. Build the database from scratch
+# 1. Build the SQLite database
 python scripts/build_university_db.py
 
 # 2. Export ML features to CSV
 python scripts/export_student_report.py
+```
+
+### Unit 2 Database (PostgreSQL — pgAdmin)
+
+See [`docs/POSTGRESQL_SETUP.md`](docs/POSTGRESQL_SETUP.md) for step-by-step setup.
+
+```sql
+-- Once PostgreSQL is running, open pgAdmin → Query Tool
+-- Run files in this order:
+-- 1. database/queries/postgresql/01_schema.sql
+-- 2. database/queries/postgresql/02_seed_data.sql
+-- 3. database/queries/postgresql/03_verify.sql
 ```
 
 ### Test Everything
@@ -143,6 +163,7 @@ docker run --rm -v $(pwd)/data:/app/data student-pipeline
 | `--db` | `-d` | `data/student_data.db` | SQLite path |
 | `--verbose` | `-v` | off | Enable DEBUG logging |
 | `--no-verify` | — | off | Skip post-save verification |
+| `--version` | — | — | Show version |
 
 ### Exit Codes
 
@@ -168,23 +189,30 @@ docker run --rm -v $(pwd)/data:/app/data student-pipeline
 | `enrollments` | Student ↔ Course (M:N) | 13 |
 | `assessments` | Grades | 26 |
 
-### Schema Highlights
+### Dual-Engine Support
 
-- **Primary Keys**: every table has an integer PK
-- **Foreign Keys**: enforced with `PRAGMA foreign_keys = ON`
-- **Constraints**: `UNIQUE`, `CHECK`, `NOT NULL`
-- **Indexes**: on all FK columns for fast joins
+The same schema and queries work on **both**:
 
-Full ERD: [`docs/DATABASE.md`](docs/DATABASE.md)
+| Engine | Use Case | Where |
+|--------|----------|-------|
+| **SQLite** | Embedded, testing, Python integration | `data/raw/university.db` |
+| **PostgreSQL** | Production, advanced SQL, multi-user | pgAdmin |
 
 ### SQL Query Catalog
 
-| File | Focus |
-|------|-------|
-| `database/queries/basic.sql` | SELECT, WHERE, ORDER BY |
-| `database/queries/aggregates.sql` | COUNT, AVG, MIN, MAX, GROUP BY, HAVING |
-| `database/queries/joins.sql` | INNER JOIN, LEFT JOIN, Multi-Table |
-| `database/queries/reports.sql` | Analytical reports + ML features |
+| Folder | Purpose |
+|--------|---------|
+| `database/queries/*.sql` | Basic SQL (SELECT, WHERE, JOINs) |
+| `database/queries/postgresql/` | PostgreSQL-specific (schema, seed, verify, CASE, subqueries, CTEs) |
+| `database/queries/advanced/` | SQLite advanced queries |
+
+Full details: [`database/queries/postgresql/README.md`](database/queries/postgresql/README.md)
+
+### PostgreSQL Setup
+
+Complete setup guide (installation → schema → data → first query):
+
+📖 [`docs/POSTGRESQL_SETUP.md`](docs/POSTGRESQL_SETUP.md)
 
 ### ML Feature Extraction
 
@@ -197,7 +225,7 @@ SELECT
     s.city,
     COUNT(DISTINCT e.course_id) AS courses_count,
     COUNT(a.assessment_id)      AS assessments_count,
-    ROUND(AVG(a.score), 2)      AS average_score,
+    ROUND(AVG(a.score)::numeric, 2) AS average_score,
     MAX(a.score)                AS highest_score,
     MIN(a.score)                AS lowest_score
 FROM students s
@@ -230,55 +258,60 @@ student_data_pipeline/
 │   │   ├── students_ml_ready.csv     # Unit 1 output
 │   │   └── student_performance.csv   # Unit 2 output
 │   └── student_data.db
-├── database/                          # Unit 2 — SQL assets
-│   ├── schema.sql                     # DDL (5 tables)
-│   ├── seed_data.sql                  # 51 rows of sample data
+├── database/                          # SQL assets
+│   ├── schema.sql                     # SQLite DDL
+│   ├── seed_data.sql                  # SQLite sample data
 │   └── queries/
-│       ├── basic.sql
-│       ├── aggregates.sql
-│       ├── joins.sql
-│       └── reports.sql
+│       ├── basic.sql                  # Basic SELECT, WHERE, ORDER BY
+│       ├── aggregates.sql             # GROUP BY, HAVING
+│       ├── joins.sql                  # INNER JOIN, LEFT JOIN
+│       ├── reports.sql                # Analytical reports
+│       ├── advanced/                  # Unit 3 (SQLite)
+│       │   ├── 01_case.sql
+│       │   └── 02_subqueries.sql
+│       └── postgresql/                # Unit 2 PostgreSQL
+│           ├── README.md              # ← PostgreSQL docs
+│           ├── 01_schema.sql
+│           ├── 02_seed_data.sql
+│           ├── 03_verify.sql
+│           ├── 04_case_queries.sql
+│           ├── 05_subqueries.sql
+│           └── 06_ctes.sql
 ├── docs/
-│   └── DATABASE.md                    # ERD + query catalog
+│   ├── DATABASE.md                    # ERD + query catalog
+│   └── POSTGRESQL_SETUP.md            # ← PostgreSQL setup guide
 ├── logs/
-│   └── pipeline.log                   # rotating log
-├── scripts/                           # Unit 2 — executable scripts
+│   └── pipeline.log
+├── scripts/
 │   ├── build_university_db.py
 │   └── export_student_report.py
 ├── src/                               # 10 modules
 │   ├── config.py
 │   ├── logging_setup.py
-│   ├── io_layer.py                    # CSV read/write
-│   ├── transform_layer.py             # type conv + clean
-│   ├── validate_layer.py              # schema + data validation
-│   ├── storage_layer.py               # SQLite persistence
-│   ├── report_layer.py                # quality report
-│   ├── orchestrator.py                # Unit 1 coordinator
-│   ├── db_layer.py                    # Unit 2 — SQLite connect
-│   └── query_layer.py                 # Unit 2 — SQL → DataFrame
+│   ├── io_layer.py
+│   ├── transform_layer.py
+│   ├── validate_layer.py
+│   ├── storage_layer.py
+│   ├── report_layer.py
+│   ├── orchestrator.py
+│   ├── db_layer.py
+│   └── query_layer.py
 ├── tests/                             # 61 tests
-│   ├── conftest.py
-│   ├── test_io.py
-│   ├── test_transform.py
-│   ├── test_validate.py
-│   ├── test_storage.py
-│   ├── test_orchestrator.py
-│   ├── test_db_layer.py               # Unit 2
-│   └── test_query_layer.py            # Unit 2
 ├── legacy/
-│   └── main_v1.py                     # Original educational version
-├── main.py                            # CLI entry point
+│   └── main_v1.py
+├── main.py
 ├── requirements.txt
 ├── pytest.ini
 ├── Dockerfile
 ├── .gitignore
-├── ARCHITECTURE.md                    # Design decisions
+├── ARCHITECTURE.md
+├── CHANGELOG.md
 └── README.md
 ```
 
 ---
 
-## Data Quality Rules (Unit 1)
+## Data Quality Rules
 
 | Rule | Constraint |
 |------|------------|
@@ -301,7 +334,7 @@ student_data_pipeline/
 
 ---
 
-## Database Constraints (Unit 2)
+## Database Constraints
 
 | Table | Constraint |
 |-------|------------|
@@ -343,8 +376,9 @@ pytest tests/ --cov=src --cov-report=html
 
 - **Python 3.10+**
 - **pandas 2.2+** — data manipulation
+- **PostgreSQL 18** — production-grade RDBMS
 - **SQLite 3** — embedded relational database
-- **SQL** — SELECT, WHERE, JOIN, GROUP BY, HAVING, Aggregates
+- **SQL** — SELECT, WHERE, JOIN, GROUP BY, HAVING, Aggregates, Subqueries, CTEs
 - **pytest 8+** — testing framework
 - **Docker** — containerization
 - **GitHub Actions** — CI/CD
@@ -359,7 +393,7 @@ pytest tests/ --cov=src --cov-report=html
 - **Fail Fast** — validate at the earliest boundary
 - **Error Accumulation** — collect all errors, then raise
 - **Exception Chaining** — preserve root cause with `raise ... from`
-- **Idempotency** — safe to re-run (uses `if_exists="replace"`, `exist_ok=True`)
+- **Idempotency** — safe to re-run
 - **Type Hints** — every function signature
 - **Defensive Programming** — each layer is safe by default
 
@@ -373,7 +407,10 @@ Full details: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 |------|---------|
 | `README.md` | How to use the project (this file) |
 | `ARCHITECTURE.md` | Why the project is designed this way |
-| `docs/DATABASE.md` | ERD, constraints, query catalog (Unit 2) |
+| `CHANGELOG.md` | Version history (SemVer) |
+| `docs/DATABASE.md` | ERD, constraints, query catalog |
+| `docs/POSTGRESQL_SETUP.md` | PostgreSQL setup guide |
+| `database/queries/postgresql/README.md` | PostgreSQL query docs |
 
 ---
 
