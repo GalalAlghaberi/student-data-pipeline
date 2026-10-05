@@ -1,0 +1,5 @@
+[
+  {"student_id": 2001, "name": "Fatima Al-Qadhi", "age": 22, "gpa": 3.85, "attendance": 96, "city": "Sanaa"},
+  {"student_id": 2002, "name": "Omar Abdullah", "age": 23, "gpa": 3.4, "attendance": 88, "city": "Aden"},
+  {"student_id": 2003, "name": "Layla Hassan", "age": 21, "gpa": 3.95, "attendance": 98, "city": "Taiz"}
+]

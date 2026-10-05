@@ -8,7 +8,7 @@ from pipelines.csv_pipeline import CSVPipeline
 from pipelines.sqlite_pipeline import SQLitePipeline
 from pipelines.postgres_pipeline import PostgresPipeline
 from pipelines.mongodb_pipeline import MongoDBPipeline
-
+from pipelines.json_pipeline import JSONPipeline
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("run_all")
 
@@ -51,6 +51,15 @@ def main():
         results.append(p.run())
     except Exception as exc:
         logger.error(f"MongoDB failed: {exc}")
+    # 5. JSON
+    try:
+        p = JSONPipeline(
+            output_dir=ROOT / "data/processed/json",
+            input_file=ROOT / "data/raw/students_raw.json",
+        )
+        results.append(p.run())
+    except Exception as exc:
+        logger.error(f"JSON failed: {exc}")
 
     # Summary
     logger.info("=" * 60)

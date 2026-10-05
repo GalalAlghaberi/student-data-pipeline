@@ -10,8 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 COMPARISON_DIR = ROOT / "data/comparison"
 COMPARISON_DIR.mkdir(parents=True, exist_ok=True)
 
-SOURCES = ["csv", "sqlite", "postgres", "mongodb"]
-
+SOURCES = ["csv", "sqlite", "postgres", "mongodb", "json"]
 
 def main():
     rows = []
