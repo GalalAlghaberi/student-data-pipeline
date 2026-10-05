@@ -4,7 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.0.0] - 2026-10-05
 
+### Added
+- **5 independent source pipelines**: CSV, SQLite, PostgreSQL, MongoDB, JSON
+- `pipelines/` module with abstract `BasePipeline` architecture
+- `pipelines/compare_pipelines.py` — cross-source comparison report
+- `pipelines/json_pipeline.py` — 5th source (JSON)
+- `scripts/check_environment.py` — environment verification
+- `docs/PIPELINE_ARCHITECTURE.md` — comprehensive pipeline documentation
+- MongoDB integration (Unit 8)
+
+### Changed
+- Output structure: `data/processed/{source}/{source}_clean.csv`
+- `data/comparison/` for cross-source analysis
+
+### Fixed
+- Float→Int64 cast error in SQLite/PostgreSQL pipelines
+- Idempotency: `build_mongodb.py` drops collection before re-insert
+
+### Infrastructure
+- 5 pipelines tested end-to-end
+- 61 unit tests passing
+- Environment check script
+
+### Statistics
+- 5 data sources
+- 37 total rows processed (8+8+8+10+3)
+- ~0.63 seconds total runtime
 ---
 
 ## [2.0.0] — 2025-10-04

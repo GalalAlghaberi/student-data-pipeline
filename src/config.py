@@ -97,6 +97,6 @@ EXIT_INTERRUPTED: Final[int] = 130
 # ─────────────────────────────────────────────────────────
 # Project Metadata (SemVer)
 # ─────────────────────────────────────────────────────────
-__version__: Final[str] = "2.0.0"
+__version__: Final[str] = "3.0.0"
 __author__: Final[str] = "Student Data Engineering Team"
 __license__: Final[str] = "MIT"
