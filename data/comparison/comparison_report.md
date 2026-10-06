@@ -1,6 +1,6 @@
 # Pipeline Comparison Report
 
-**Generated:** 2026-10-05T16:14:27.733485+00:00
+**Generated:** 2026-10-05T19:35:14.497341+00:00
 
 ## Summary
 
@@ -10,7 +10,7 @@
 | sqlite   | OK       |      8 |         6 | student_id,name,age,gpa,attendance,city |               16 |            8 |
 | postgres | OK       |      8 |         6 | student_id,name,age,gpa,attendance,city |               16 |            8 |
 | mongodb  | OK       |     10 |         6 | student_id,name,age,gpa,attendance,city |                0 |           10 |
-| json     | MISSING  |      0 |         0 |                                         |                0 |            0 |
+| json     | OK       |      3 |         6 | student_id,name,age,gpa,attendance,city |                0 |            3 |
 
 ## Observations
 
@@ -18,4 +18,4 @@
 - **sqlite**: 8 rows, 6 cols, 16 missing
 - **postgres**: 8 rows, 6 cols, 16 missing
 - **mongodb**: 10 rows, 6 cols, 0 missing
-- **json**: not available
+- **json**: 3 rows, 6 cols, 0 missing

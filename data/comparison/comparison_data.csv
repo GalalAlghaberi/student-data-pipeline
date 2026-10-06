@@ -3,4 +3,4 @@ csv,OK,8,6,"student_id,name,age,gpa,attendance,city",0,8
 sqlite,OK,8,6,"student_id,name,age,gpa,attendance,city",16,8
 postgres,OK,8,6,"student_id,name,age,gpa,attendance,city",16,8
 mongodb,OK,10,6,"student_id,name,age,gpa,attendance,city",0,10
-json,MISSING,0,0,,0,0
+json,OK,3,6,"student_id,name,age,gpa,attendance,city",0,3
