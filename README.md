@@ -1,504 +1,419 @@
 # Student Data Engineering Pipeline
 
-End-to-End Data Engineering Pipeline — from raw CSV, JSON, and relational/document databases to validated, ML-ready datasets, with SQL, PostgreSQL, SQLite, MongoDB, quality reporting, and full test coverage.
+> End-to-end data engineering pipeline that transforms raw student data
+> from 5 sources into ML-ready datasets — with validation, quality
+> checks, and multi-database support.
 
-**Current version: [3.0.0](CHANGELOG.md)** — see [CHANGELOG.md](CHANGELOG.md) for details.
+**Version:** v4.0.0-dev (current: v3.0.0)  
+**Python:** 3.14.7 · **OS:** Windows 11  
+**Databases:** SQLite 3.50.4 · PostgreSQL 18.6 · MongoDB 7.0.14
+
+[![Tests](https://img.shields.io/badge/tests-61%20passed-brightgreen)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)]()
+[![GitHub](https://img.shields.io/badge/GitHub-Public-success)](https://github.com/GalalAlghaberi/student-data-pipeline)
+
+---
+
+## 📋 جدول المحتويات
+
+1. [Overview](#overview)
+2. [Curriculum Alignment](#curriculum-alignment)
+3. [Architecture](#architecture)
+4. [Project Structure](#project-structure)
+5. [Installation](#installation)
+6. [Usage](#usage)
+7. [Data Sources](#data-sources)
+8. [Data Quality](#data-quality)
+9. [Testing](#testing)
+10. [Documentation](#documentation)
+11. [Roadmap](#roadmap)
+12. [Author](#author)
 
 ---
 
 ## Overview
 
-This project demonstrates production-grade Data Engineering across eight integrated units:
+This project implements a **multi-source data engineering pipeline** that:
 
-- **Unit 1 — Data Engineering Fundamentals**: CSV-based ETL pipeline (Python + Pandas)
-- **Unit 2 — Relational Databases & SQL**: PostgreSQL + SQLite extraction layer
-- **Unit 3 — Advanced SQL**: Subqueries, CTEs, Window Functions, Ranking
-- **Unit 4 — Database Design**: Normalization (1NF, 2NF, 3NF)
-- **Unit 5 — Python for Data Engineering**: Multi-source ETL patterns
-- **Unit 6 — Pandas / Polars**: Data processing and performance
-- **Unit 7 — APIs & Web Scraping**: Data acquisition
-- **Unit 8 — MongoDB & NoSQL**: Document databases + 5 independent pipelines
+- **Extracts** data from 5 different sources (CSV, JSON, SQLite, PostgreSQL, MongoDB)
+- **Transforms** and **cleans** data using Pandas + NumPy
+- **Validates** data quality using 61 automated tests
+- **Loads** cleaned data to databases and Parquet (v4)
+- **Produces** ML-ready datasets for analytics and machine learning
 
-All pathways converge on the same goal: **producing validated, ML-ready datasets**.
+### 🎯 Project Goals
+
+1. Build reliable, reproducible data pipelines
+2. Enforce strict data quality at every stage
+3. Support multiple database backends
+4. Produce ML-ready features with documented lineage
+5. Follow software engineering best practices
 
 ---
 
-## What's Inside
+## 🗺️ Curriculum Alignment
 
-### Unit 1 — CSV Pipeline (8 layers)
+This project is aligned with **two complementary references**:
 
-```
-CSV -> LOAD -> VALIDATE SCHEMA -> CONVERT TYPES -> CLEAN
-    -> VALIDATE FINAL -> SAVE (CSV + SQLite) -> QUALITY REPORT
-```
+### 1. Course 3 — Data Engineering & Databases for AI
 
-### Unit 2 — Database Layer (5 tables, dual engine)
+| Unit | Topic | Status |
+|------|-------|--------|
+| 1 | Data Engineering Fundamentals | ✅ Complete |
+| 2 | Relational DB & SQL | ✅ Complete |
+| 3 | Advanced SQL | ✅ Complete |
+| 4 | Database Design & Normalization | ✅ Complete |
+| 5 | Python for Data Engineering | ✅ Complete |
+| 6 | Pandas / NumPy / Polars | ✅ Complete |
+| 7 | APIs & Web Scraping | 🔄 v4 |
+| 8 | MongoDB & NoSQL | ✅ Complete |
+| 9 | Data Cleaning & Quality | ✅ Complete |
+| 10 | ETL/ELT Pipelines | ✅ Complete |
+| 11 | Git / GitHub / Documentation | ✅ Complete |
 
-```
-PostgreSQL (primary)  ->  SQL Queries  ->  DataFrame  ->  Validation  ->  CSV
-SQLite     (fallback) ->  SQL Queries  ->  DataFrame  ->  Validation  ->  CSV
-```
+### 2. Guide — مهارات ومبادئ هندسة البيانات
 
-### Unit 3 — Advanced SQL
+| Ch | Topic | Status |
+|----|-------|--------|
+| 1 | مفهوم DE + الأهداف | ✅ |
+| 2 | بنية المشاريع | ✅ |
+| 3 | Architecture First | ✅ |
+| 4 | استراتيجيات التخزين | 🔄 v4 |
+| 5 | الحوسبة والموارد | ⏳ v4 |
+| 6 | OLTP vs OLAP | ✅ |
+| 7 | DW + Star Schema | 🔄 v4 |
+| 8 | نمذجة البيانات + Grain | ✅ |
+| 9 | جودة البيانات | ✅ |
+| 10 | CI/CD + Docker | ✅ |
+| 11 | Unit Testing | ✅ |
+| 12 | المبدأ الجوهري | ✅ |
 
-```
-Subqueries + CTEs + CASE + Window Functions + Ranking + LAG/LEAD
-```
+### 📖 Full Curriculum Map
 
-### Unit 8 — Multi-Source Pipeline Architecture (NEW in v3.0.0)
+For the complete mapping between Units and Chapters, see:
 
-Five independent source pipelines sharing a common `BasePipeline` abstract class:
+- **[docs/CURRICULUM_MAP.md](docs/CURRICULUM_MAP.md)** — detailed cross-reference
+- **[docs/ARCHITECTURE_LAYERS.md](docs/ARCHITECTURE_LAYERS.md)** — OLTP/OLAP/ML layers
 
-| Pipeline | Source | Type |
-|----------|--------|------|
-| CSV | data/raw/students_raw.csv | Flat file |
-| JSON | data/raw/students_raw.json | Semi-structured |
-| SQLite | data/raw/university.db | Embedded RDBMS |
-| PostgreSQL | university_training DB | Client-server RDBMS |
-| MongoDB | University_Ai.students | Document DB |
+### 🎯 Core Principle
 
-Each pipeline implements four stages:
-
-- `extract()` — read from source
-- `transform()` — clean + standardize (6 columns)
-- `validate()` — check correctness
-- `load()` — save output
-
-Run all:
-
-```bash
-python pipelines/run_all_pipelines.py
-python pipelines/compare_pipelines.py
-```
-
-**Result:** 5 CSV outputs + 1 comparison report in under 1 second.
+> "Facilitating the movement, storage, and access to data in a
+> **repeatable**, **resilient**, and **scalable** manner."
+>
+> — دليل مهارات ومبادئ هندسة البيانات (Ch 12)
 
 ---
 
 ## Architecture
 
-### Unit 1 Pipeline (9 stages)
+### Three-Layer Model
 
 ```
-RAW CSV
-   |
-   v
-[1] LOAD             io_layer.load_data
-   |
-   v
-[2] VALIDATE SCHEMA  validate_layer.validate_schema
-   |
-   v
-[3] CONVERT TYPES    transform_layer.convert_data_types
-   |
-   v
-[4] CLEAN            transform_layer.clean_data
-   |
-   v
-[5] VALIDATE FINAL   validate_layer.validate_data
-   |
-   +-------+-------+
-   |               |
-   v               v
-[6] SAVE        [7] SAVE
-   CSV             SQLite
-   +-------+-------+
-           |
-           v
-[8] REPORT          report_layer.generate_quality_report
-           |
-           v
-    ML-READY DATASET
+┌──────────────────────────────────────────────────────────┐
+│  BRONZE (Raw)      data/bronze/                          │
+│  ├── csv_raw/      5 source files preserved              │
+│  ├── api_raw/                                            │
+│  └── mongo_raw/                                          │
+└────────────────────┬─────────────────────────────────────┘
+                     │ Clean + Validate
+                     ▼
+┌──────────────────────────────────────────────────────────┐
+│  SILVER (Cleaned)  data/silver/                          │
+│  └── *_clean.csv   (5 pipelines, 37 rows)                │
+└────────────────────┬─────────────────────────────────────┘
+                     │ Star Schema + Features
+                     ▼
+┌──────────────────────────────────────────────────────────┐
+│  GOLD (Analytics)  data/gold/                            │
+│  ├── fact_student_performance.parquet                    │
+│  ├── dim_*.parquet                                       │
+│  └── ml_features.parquet                                 │
+└────────────────────┬─────────────────────────────────────┘
+                     │ Train / Predict
+                     ▼
+┌──────────────────────────────────────────────────────────┐
+│  ML MODEL          models/                               │
+│  └── model_metrics.csv                                   │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Unit 2 Database Layer
+For detailed layer documentation, see **[docs/ARCHITECTURE_LAYERS.md](docs/ARCHITECTURE_LAYERS.md)**.
 
-```
-Relational Database (PostgreSQL / SQLite)
-   |
-   v
-SQL Extraction (query_layer)
-   |
-   v
-DataFrame (pandas)
-   |
-   v
-Validation (score ranges, columns)
-   |
-   v
-student_performance.csv (ML features)
-```
+### Multi-Source Pipelines (v3.0.0)
 
-### Unit 8 Multi-Source Layer
-
-```
-CSV  ------+
-JSON ------+
-SQLite ----+--> BasePipeline (abstract)
-Postgres --+    +- extract()
-MongoDB ---+    +- transform()   -> 6 standard columns
-                +- validate()
-                +- load()        -> data/processed/{src}/{src}_clean.csv
-                       |
-                       v
-         compare_pipelines.py -> comparison_report.md
-```
+| Source | Rows In | Rows Out | Duration |
+|--------|---------|----------|----------|
+| CSV | 8 | 8 | 0.02s |
+| SQLite | 8 | 8 | 0.03s |
+| PostgreSQL | 8 | 8 | 0.40s |
+| MongoDB | 10 | 10 | 0.19s |
+| JSON | 3 | 3 | 0.01s |
+| **Total** | **37** | **37** | **~0.6s** |
 
 ---
 
-## Quick Start
-
-### Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Unit 1 Pipeline (CSV)
-
-```bash
-python main.py
-```
-
-### Unit 2 Database (SQLite)
-
-```bash
-python scripts/build_university_db.py
-python scripts/export_student_report.py
-```
-
-### Unit 2 Database (PostgreSQL — pgAdmin)
-
-See [docs/POSTGRESQL_SETUP.md](docs/POSTGRESQL_SETUP.md) for step-by-step setup.
-
-```sql
--- Once PostgreSQL is running, open pgAdmin -> Query Tool
--- Run files in this order:
--- 1. database/queries/postgresql/01_schema.sql
--- 2. database/queries/postgresql/02_seed_data.sql
--- 3. database/queries/postgresql/03_verify.sql
-```
-
-### Unit 8 Multi-Source Pipelines
-
-```bash
-# Run all 5 pipelines
-python pipelines/run_all_pipelines.py
-
-# Generate comparison report
-python pipelines/compare_pipelines.py
-
-# Check environment (Python + services + files)
-python scripts/check_environment.py
-```
-
-### MongoDB (Unit 8)
-
-```bash
-# Build MongoDB collection (idempotent)
-python scripts/build_mongodb.py
-
-# Explore with demos
-python scripts/mongodb_read.py
-python scripts/mongodb_update.py
-python scripts/mongodb_pipeline.py
-```
-
-### Test Everything
-
-```bash
-pytest tests/ -v
-```
-
-### Docker
-
-```bash
-docker build -t student-pipeline .
-docker run --rm -v $(pwd)/data:/app/data student-pipeline
-```
-
----
-
-## CLI Options (Unit 1 Pipeline)
-
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--raw` | `-r` | data/raw/students_raw.csv | Input CSV path |
-| `--output` | `-o` | data/processed/students_ml_ready.csv | Output CSV path |
-| `--db` | `-d` | data/student_data.db | SQLite path |
-| `--verbose` | `-v` | off | Enable DEBUG logging |
-| `--no-verify` | — | off | Skip post-save verification |
-| `--version` | — | — | Show version |
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Unexpected error |
-| 2 | File not found |
-| 3 | Validation error |
-| 130 | Interrupted (Ctrl+C) |
-
----
-
-## Database Layer (Unit 2)
-
-### Tables
-
-| Table | Purpose | Rows |
-|-------|---------|------|
-| instructors | Teaching staff | 4 |
-| students | Enrolled students | 8 |
-| courses | Offered courses | 5 |
-| enrollments | Student-Course (M:N) | 13 |
-| assessments | Grades | 26 |
-
-### Tri-Engine Support
-
-| Engine | Use Case | Where |
-|--------|----------|-------|
-| SQLite | Embedded, testing, Python integration | data/raw/university.db |
-| PostgreSQL | Production, advanced SQL, multi-user | pgAdmin |
-| MongoDB | Semi-structured, nested documents | University_Ai.students (Compass) |
-
-### SQL Query Catalog
-
-| Folder | Purpose |
-|--------|---------|
-| database/queries/*.sql | Basic SQL (SELECT, WHERE, JOINs) |
-| database/queries/postgresql/ | PostgreSQL-specific (schema, seed, verify, CASE, subqueries, CTEs, window functions) |
-| database/queries/advanced/ | SQLite advanced queries |
-| database/mongodb/ | MongoDB query catalog + README |
-
-Full details: [database/queries/postgresql/README.md](database/queries/postgresql/README.md)
-
-### PostgreSQL Setup
-
-Complete setup guide (installation -> schema -> data -> first query):
-
-[docs/POSTGRESQL_SETUP.md](docs/POSTGRESQL_SETUP.md)
-
-### MongoDB Setup
-
-MongoDB integration guide (Unit 8):
-
-[docs/MONGODB.md](docs/MONGODB.md)
-
-### ML Feature Extraction
-
-The canonical ML-ready table:
-
-```sql
-SELECT
-    s.student_id,
-    s.full_name       AS student_name,
-    s.city,
-    COUNT(DISTINCT e.course_id) AS courses_count,
-    COUNT(a.assessment_id)      AS assessments_count,
-    ROUND(AVG(a.score)::numeric, 2) AS average_score,
-    MAX(a.score)                AS highest_score,
-    MIN(a.score)                AS lowest_score
-FROM students s
-LEFT JOIN enrollments e ON s.student_id = e.student_id
-LEFT JOIN assessments a ON s.student_id = a.student_id
-GROUP BY s.student_id, s.full_name, s.city
-ORDER BY average_score DESC;
-```
-
----
-
-## Multi-Source Pipelines (Unit 8)
-
-### Pipeline Comparison
-
-| Source | Rows | Columns | Missing | Notes |
-|--------|------|---------|---------|-------|
-| CSV | 8 | 6 | 0 | Complete |
-| SQLite | 8 | 6 | 16 | No attendance column |
-| PostgreSQL | 8 | 6 | 16 | No attendance column |
-| MongoDB | 10 | 6 | 0 | Semi-structured + 2 extra |
-| JSON | 3 | 6 | 0 | Demo dataset |
-| **Total** | **37** | — | **32** | under 1s runtime |
-
-### Standardized Schema (6 columns)
-
-All pipelines output the same schema:
-
-| Column | Type | Range |
-|--------|------|-------|
-| student_id | Int64 | > 0 |
-| name | string | — |
-| age | Int64 | 16-80 |
-| gpa | float64 | 0.0-4.0 |
-| attendance | float64 | 0-100 |
-| city | string | — |
-
-### Interpretation of Missing Values
-
-The 16 missing values in SQLite/PostgreSQL are not a bug — they accurately reflect the source schemas (no attendance column). This demonstrates why multi-source pipelines need a standardization layer.
-
-Full details: [docs/PIPELINE_ARCHITECTURE.md](docs/PIPELINE_ARCHITECTURE.md)
-
----
-
-## Project Layout
+## Project Structure
 
 ```
 student_data_pipeline/
-+-- data/
-|   +-- raw/
-|   |   +-- students_raw.csv
-|   |   +-- students_raw.json
-|   |   +-- university.db
-|   +-- processed/
-|   |   +-- csv/csv_clean.csv
-|   |   +-- sqlite/sqlite_clean.csv
-|   |   +-- postgres/postgres_clean.csv
-|   |   +-- mongodb/mongodb_clean.csv
-|   |   +-- json/json_clean.csv
-|   +-- comparison/
-|   |   +-- comparison_report.md
-|   |   +-- comparison_data.csv
-|   +-- student_data.db
-+-- database/
-|   +-- schema.sql
-|   +-- seed_data.sql
-|   +-- queries/
-|   +-- mongodb/
-+-- docs/
-|   +-- DATABASE.md
-|   +-- POSTGRESQL_SETUP.md
-|   +-- MONGODB.md
-|   +-- PIPELINE_ARCHITECTURE.md
-+-- pipelines/
-|   +-- base_pipeline.py
-|   +-- csv_pipeline.py
-|   +-- sqlite_pipeline.py
-|   +-- postgres_pipeline.py
-|   +-- mongodb_pipeline.py
-|   +-- json_pipeline.py
-|   +-- run_all_pipelines.py
-|   +-- compare_pipelines.py
-+-- scripts/
-|   +-- build_university_db.py
-|   +-- export_student_report.py
-|   +-- build_mongodb.py
-|   +-- mongodb_read.py
-|   +-- mongodb_update.py
-|   +-- check_environment.py
-+-- src/
-|   +-- config.py
-|   +-- io_layer.py
-|   +-- transform_layer.py
-|   +-- validate_layer.py
-|   +-- storage_layer.py
-|   +-- report_layer.py
-|   +-- orchestrator.py
-|   +-- db_layer.py
-|   +-- query_layer.py
-|   +-- mongo_layer.py
-+-- tests/
-+-- main.py
-+-- requirements.txt
-+-- pytest.ini
-+-- Dockerfile
-+-- ARCHITECTURE.md
-+-- CHANGELOG.md
-+-- README.md
+├── pipelines/                     ⭐ v3.0.0
+│   ├── base_pipeline.py           # Abstract base class
+│   ├── csv_pipeline.py
+│   ├── sqlite_pipeline.py
+│   ├── postgres_pipeline.py
+│   ├── mongodb_pipeline.py
+│   ├── json_pipeline.py
+│   ├── api_pipeline.py            🆕 v4
+│   ├── scraper_pipeline.py        🆕 v4
+│   ├── run_all_pipelines.py
+│   └── compare_pipelines.py
+│
+├── src/                            # 11 modules
+│   ├── config.py                  # version = "4.0.0"
+│   ├── logging_setup.py
+│   ├── io_layer.py
+│   ├── transform_layer.py
+│   ├── validate_layer.py
+│   ├── storage_layer.py
+│   ├── report_layer.py
+│   ├── orchestrator.py
+│   ├── db_layer.py
+│   ├── query_layer.py
+│   ├── mongo_layer.py
+│   ├── warehouse/                 🆕 v4
+│   │   ├── parquet_writer.py
+│   │   └── star_schema.py
+│   ├── features/                  🆕 v4
+│   │   └── engineering.py
+│   └── ml/                        🆕 v4
+│       ├── split.py
+│       ├── baseline.py
+│       ├── trainer.py
+│       └── metrics.py
+│
+├── data/
+│   ├── bronze/                    🆕 v4 — Raw
+│   ├── silver/                    🆕 v4 — Cleaned
+│   ├── gold/                      🆕 v4 — Parquet
+│   ├── raw/                       # Legacy (v3.0.0)
+│   ├── processed/                 # Legacy (v3.0.0)
+│   └── comparison/
+│
+├── database/
+│   ├── schema.sql
+│   ├── seed_data.sql
+│   ├── queries/                   # SQL queries by topic
+│   └── mongodb/
+│
+├── docs/                           # 9 files
+│   ├── CURRICULUM_MAP.md          🆕 v4
+│   ├── ARCHITECTURE_LAYERS.md     🆕 v4
+│   ├── MEDALLION.md               🆕 v4
+│   ├── FEATURE_STORE.md           🆕 v4
+│   ├── DATABASE.md
+│   ├── POSTGRESQL_SETUP.md
+│   ├── MONGODB.md
+│   └── PIPELINE_ARCHITECTURE.md
+│
+├── tests/                          # 61 tests
+│   ├── test_io.py (8)
+│   ├── test_transform.py (13)
+│   ├── test_validate.py (10)
+│   ├── test_storage.py (6)
+│   ├── test_orchestrator.py (5)
+│   ├── test_db_layer.py (10)
+│   ├── test_query_layer.py (9)
+│   └── test_warehouse.py          🆕 v4
+│
+├── scripts/                        # 9+ scripts
+│   ├── build_university_db.py
+│   ├── export_student_report.py
+│   ├── run_sql_file.py
+│   ├── build_mongodb.py
+│   ├── check_environment.py
+│   ├── benchmark.py               🆕 v4
+│   └── run_ml_pipeline.py         🆕 v4
+│
+├── main.py
+├── requirements.txt
+├── pytest.ini
+├── Dockerfile
+├── Makefile                       🆕 v4
+├── .github/workflows/pipeline.yml
+├── README.md                      (this file)
+├── ARCHITECTURE.md
+└── CHANGELOG.md
 ```
 
 ---
 
-## Data Quality Rules
+## Installation
 
-| Rule | Constraint |
-|------|------------|
-| student_id | Unique, non-null, integer |
-| name | Non-null |
-| age | Between 16 and 80 |
-| gpa | Between 0 and 4 |
-| attendance | Between 0 and 100 |
-| city | Filled with "Unknown" if missing |
+### Prerequisites
 
-### Missing-Value Policy
+- Python 3.14.7+
+- SQLite 3.50.4+
+- PostgreSQL 18.6 (optional)
+- MongoDB 7.0.14 (optional)
 
-| Column | Policy |
-|--------|--------|
-| name | Drop row |
-| city | Fill with "Unknown" |
-| age | Fill with median |
-| gpa | Fill with median |
-| attendance | Fill with median |
+### Quick Start
+
+```bash
+# 1. Clone
+git clone git@github.com:GalalAlghaberi/student-data-pipeline.git
+cd student-data-pipeline
+
+# 2. Virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Verify environment
+python scripts/check_environment.py
+```
+
+### Environment Variables
+
+Create `.env` (do NOT commit):
+```env
+PG_PASSWORD=your_postgres_password
+MONGO_URI=mongodb://localhost:27017/
+```
+
+See `.env.example` for the full template.
 
 ---
 
-## Database Constraints
+## Usage
 
-| Table | Constraint |
-|-------|------------|
-| instructors | email UNIQUE |
-| students | gender IN ('Male', 'Female') |
-| courses | credit_hours > 0 |
-| enrollments | UNIQUE(student, course, semester) |
-| assessments | score BETWEEN 0 AND 100 |
-| assessments | assessment_type IN (Midterm, Final, Quiz, Project) |
+### Run all pipelines
+
+```bash
+python pipelines/run_all_pipelines.py
+```
+
+### Compare results
+
+```bash
+python pipelines/compare_pipelines.py
+cat data/comparison/comparison_report.md
+```
+
+### Run MongoDB demos
+
+```bash
+python scripts/build_mongodb.py
+python scripts/mongodb_read.py
+python scripts/mongodb_update.py
+```
+
+### Run tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+### v4 — Build Gold Layer
+
+```bash
+# Build OLAP + ML features
+python -m src.warehouse.star_schema
+python -m src.features.engineering
+
+# Train model
+python scripts/run_ml_pipeline.py
+```
+
+### v4 — Makefile shortcuts
+
+```bash
+make pipeline    # Run all pipelines
+make test        # Run all tests
+make ml          # Train ML model
+make docker      # Build + run Docker
+```
+
+---
+
+## Data Sources
+
+| Source | Type | Location | Purpose |
+|--------|------|----------|---------|
+| CSV | Tabular | `data/bronze/csv_raw/` | Training data |
+| JSON | Semi-structured | `data/bronze/json_raw/` | API simulation |
+| SQLite | Relational | `data/raw/university.db` | OLTP simulation |
+| PostgreSQL | Relational | `localhost:5432` | Production sim |
+| MongoDB | Document | `localhost:27017` | NoSQL simulation |
+| REST API | Web | *(v4)* | Live acquisition |
+| Web Scraping | HTML | *(v4)* | Fallback source |
+
+---
+
+## Data Quality
+
+### Quality Rules
+
+| Field | Rule |
+|-------|------|
+| `student_id` | Unique, not null |
+| `name` | Not null |
+| `age` | 16 ≤ age ≤ 80 |
+| `gpa` | 0 ≤ gpa ≤ 4 |
+| `attendance` | 0 ≤ attendance ≤ 100 |
+| `city` | Not null |
+
+### Quality Dimensions
+
+Following Unit 9 + Guide Ch 9:
+
+- **Accuracy** — is the value correct?
+- **Completeness** — is data present?
+- **Consistency** — same representation?
+- **Validity** — within rules?
+- **Uniqueness** — no duplicates?
+- **Timeliness** — current enough?
+
+### Quality Report
+
+Generated at `data/comparison/comparison_report.md`:
+
+```
+Input Rows:      37
+Output Rows:     37
+Rejected Rows:   0
+Missing Values:  32 (SQLite/Postgres — expected)
+Validation:      PASSED
+```
 
 ---
 
 ## Testing
 
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# With coverage
-pytest tests/ --cov=src --cov=pipelines --cov-report=html
+python -m pytest tests/ -q
+# 61 passed in 1.4s
 ```
 
-### Test Breakdown
+### Test Coverage
 
-| Layer | File | Tests |
-|-------|------|-------|
-| I/O | test_io.py | 8 |
-| Transform | test_transform.py | 13 |
-| Validate | test_validate.py | 10 |
-| Storage | test_storage.py | 6 |
-| Orchestrator | test_orchestrator.py | 5 |
-| Database | test_db_layer.py | 10 |
-| Query | test_query_layer.py | 9 |
-| **Total** | | **61** |
+| Layer | Tests |
+|-------|-------|
+| I/O | 8 |
+| Transform | 13 |
+| Validate | 10 |
+| Storage | 6 |
+| Orchestrator | 5 |
+| Database | 10 |
+| Query | 9 |
+| **Total** | **61** |
 
----
+### v4 Additions
 
-## Technologies
-
-- Python 3.10+
-- pandas 2.2+
-- PostgreSQL 18
-- SQLite 3
-- MongoDB 7.0
-- pytest 8+
-- Docker
-- GitHub Actions
-
----
-
-## Design Principles
-
-- **Architecture First** — layout decided before code
-- **Single Responsibility** — one responsibility per layer
-- **Immutability** — every transformer copies before mutating
-- **Fail Fast** — validate at the earliest boundary
-- **Error Accumulation** — collect all errors, then raise
-- **Exception Chaining** — preserve root cause with `raise ... from`
-- **Idempotency** — safe to re-run
-- **Type Hints** — every function signature
-- **Defensive Programming** — each layer is safe by default
-- **Open/Closed** — `BasePipeline` is closed for modification, open for extension
-- **Template Method** — `run()` defines skeleton, subclasses fill stages
-
-Full details: [ARCHITECTURE.md](ARCHITECTURE.md)
+- `tests/test_warehouse.py` — Parquet + Star Schema
+- `tests/test_features.py` — Feature Engineering
+- `tests/test_ml.py` — Model training
 
 ---
 
@@ -506,23 +421,71 @@ Full details: [ARCHITECTURE.md](ARCHITECTURE.md)
 
 | File | Purpose |
 |------|---------|
-| README.md | How to use the project (this file) |
-| ARCHITECTURE.md | Why the project is designed this way |
-| CHANGELOG.md | Version history (SemVer) |
-| docs/DATABASE.md | ERD, constraints, query catalog |
-| docs/POSTGRESQL_SETUP.md | PostgreSQL setup guide |
-| docs/MONGODB.md | MongoDB integration guide |
-| docs/PIPELINE_ARCHITECTURE.md | Multi-source pipeline architecture |
-| database/queries/postgresql/README.md | PostgreSQL query docs |
+| `README.md` | This file |
+| `ARCHITECTURE.md` | ADR — architectural decisions |
+| `CHANGELOG.md` | Version history |
+| `docs/CURRICULUM_MAP.md` | 🆕 Units ↔ Chapters mapping |
+| `docs/ARCHITECTURE_LAYERS.md` | 🆕 OLTP/OLAP/ML layers |
+| `docs/DATABASE.md` | ERD + schema |
+| `docs/POSTGRESQL_SETUP.md` | PostgreSQL guide |
+| `docs/MONGODB.md` | MongoDB guide |
+| `docs/PIPELINE_ARCHITECTURE.md` | Multi-source design |
+| `docs/MEDALLION.md` | 🆕 Bronze/Silver/Gold |
+| `docs/FEATURE_STORE.md` | 🆕 Feature catalog |
 
 ---
 
-## Repository
+## Roadmap
 
-https://github.com/GalalAlghaberi/student-data-pipeline
+### ✅ v3.0.0 (Current)
+- 5 independent pipelines
+- 61 automated tests
+- Multi-database support
+- Complete documentation
+
+### 🔄 v4.0.0 (In Progress)
+- [ ] **Phase 1:** API + Scraper pipelines (Unit 7)
+- [ ] **Phase 2:** Parquet writer + Star Schema (Ch 4, 7)
+- [ ] **Phase 3:** Medallion Architecture (Bronze/Silver/Gold)
+- [ ] **Phase 4:** Feature Engineering layer (Unit 9)
+- [ ] **Phase 5:** ML Integration (split + baseline + trainer)
+- [ ] **Phase 6:** CI/CD + Docker + Makefile
+- [ ] **Phase 7:** Release v4.0.0
+
+**Timeline:** ~20 working days
+
+### 🎯 v5.0.0 (Planned)
+- Airflow / Dagster orchestration
+- MLflow tracking
+- dbt transformations
+- Streamlit dashboard
+
+---
+
+## Related References
+
+- **Course 3:** Data Engineering & Databases for AI (Units 1–11)
+- **Guide:** مهارات ومبادئ هندسة البيانات (12 chapters)
+- **ML:** Applied ML Day 1 (California Housing)
+
+---
+
+## Author
+
+**Galal Al-Ghaberi**  
+Mechatronics Engineer · University of Dhamar  
+📧 galalalghaberi@gmail.com  
+📱 +967 777273715  
+🔗 [GitHub](https://github.com/GalalAlghaberi)
 
 ---
 
 ## License
 
-MIT © 2026
+MIT License — see [LICENSE](LICENSE) file.
+
+---
+
+**Last Updated:** 2026-10-07  
+**Version:** v4.0.0-dev  
+**Status:** Active Development
