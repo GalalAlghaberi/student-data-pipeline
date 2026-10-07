@@ -1,0 +1,180 @@
+{
+  "_meta": {
+    "source": "https://dummyjson.com/users?limit=10&skip=0",
+    "description": "Cached response from DummyJSON /users endpoint — used as offline fallback when the network is unavailable.",
+    "cached_at": "2026-10-07T04:00:00Z",
+    "purpose": "Training fixture for API Pipeline (Unit 7)",
+    "field_mapping": {
+      "id": "student_id",
+      "firstName + lastName": "name",
+      "age": "age",
+      "address.city": "city",
+      "NOT_AVAILABLE": "gpa, attendance (will be NaN — expected)"
+    }
+  },
+  "users": [
+    {
+      "id": 3001,
+      "firstName": "Ahmed",
+      "lastName": "Al-Sanaani",
+      "age": 22,
+      "gender": "male",
+      "email": "ahmed.sanaani@x.university.edu",
+      "address": {
+        "address": "626 Main Street",
+        "city": "Sanaa",
+        "state": "Sanaa",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3002,
+      "firstName": "Sara",
+      "lastName": "Al-Dhamari",
+      "age": 21,
+      "gender": "female",
+      "email": "sara.dhamari@x.university.edu",
+      "address": {
+        "address": "12 University Road",
+        "city": "Dhamar",
+        "state": "Dhamar",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3003,
+      "firstName": "Khaled",
+      "lastName": "Al-Ibbi",
+      "age": 23,
+      "gender": "male",
+      "email": "khaled.ibbi@x.university.edu",
+      "address": {
+        "address": "45 Old Town",
+        "city": "Ibb",
+        "state": "Ibb",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3004,
+      "firstName": "Mona",
+      "lastName": "Al-Taizi",
+      "age": 20,
+      "gender": "female",
+      "email": "mona.taizi@x.university.edu",
+      "address": {
+        "address": "88 Al-Qahira Street",
+        "city": "Taiz",
+        "state": "Taiz",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3005,
+      "firstName": "Ali",
+      "lastName": "Al-Sanaani",
+      "age": 25,
+      "gender": "male",
+      "email": "ali.sanaani@x.university.edu",
+      "address": {
+        "address": "3 Zubairi Street",
+        "city": "Sanaa",
+        "state": "Sanaa",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3006,
+      "firstName": "Huda",
+      "lastName": "Al-Dhamari",
+      "age": 22,
+      "gender": "female",
+      "email": "huda.dhamari@x.university.edu",
+      "address": {
+        "address": "22 Market Street",
+        "city": "Dhamar",
+        "state": "Dhamar",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3007,
+      "firstName": "Mohammed",
+      "lastName": "Al-Sanaani",
+      "age": 19,
+      "gender": "male",
+      "email": "mohammed.sanaani@x.university.edu",
+      "address": {
+        "address": "7 Hadda Street",
+        "city": "Sanaa",
+        "state": "Sanaa",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3008,
+      "firstName": "Noor",
+      "lastName": "Al-Salehi",
+      "age": 21,
+      "gender": "female",
+      "email": "noor.salehi@x.university.edu",
+      "address": {
+        "address": "15 Ziraa Street",
+        "city": "Sanaa",
+        "state": "Sanaa",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3009,
+      "firstName": "Yousef",
+      "lastName": "Al-Hadrami",
+      "age": 24,
+      "gender": "male",
+      "email": "yousef.hadrami@x.university.edu",
+      "address": {
+        "address": "50 Coastal Road",
+        "city": "Hadramout",
+        "state": "Hadramout",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    },
+    {
+      "id": 3010,
+      "firstName": "Layla",
+      "lastName": "Al-Adeni",
+      "age": 20,
+      "gender": "female",
+      "email": "layla.adeni@x.university.edu",
+      "address": {
+        "address": "9 Tawahi Street",
+        "city": "Aden",
+        "state": "Aden",
+        "country": "Yemen"
+      },
+      "university": "University of Dhamar",
+      "role": "student"
+    }
+  ],
+  "total": 10,
+  "skip": 0,
+  "limit": 10
+}

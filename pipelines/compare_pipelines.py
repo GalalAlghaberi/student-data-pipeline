@@ -1,4 +1,4 @@
-"""Compare outputs from all 4 pipelines."""
+"""Compare outputs from all source pipelines."""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 COMPARISON_DIR = ROOT / "data/comparison"
 COMPARISON_DIR.mkdir(parents=True, exist_ok=True)
 
-SOURCES = ["csv", "sqlite", "postgres", "mongodb", "json"]
+SOURCES = ["csv", "sqlite", "postgres", "mongodb", "json", "api", "scraper"]
+
 
 def main():
     rows = []

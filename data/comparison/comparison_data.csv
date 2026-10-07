@@ -4,3 +4,5 @@ sqlite,OK,8,6,"student_id,name,age,gpa,attendance,city",16,8
 postgres,OK,8,6,"student_id,name,age,gpa,attendance,city",16,8
 mongodb,OK,10,6,"student_id,name,age,gpa,attendance,city",0,10
 json,OK,3,6,"student_id,name,age,gpa,attendance,city",0,3
+api,OK,30,6,"student_id,name,age,gpa,attendance,city",60,30
+scraper,OK,10,6,"student_id,name,age,gpa,attendance,city",0,10

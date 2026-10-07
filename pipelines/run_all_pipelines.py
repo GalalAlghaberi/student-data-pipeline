@@ -1,4 +1,14 @@
-"""Run all 4 source pipelines independently."""
+"""Run all 7 source pipelines independently.
+
+Sources:
+    1. CSV       (data/raw/students_raw.csv)
+    2. SQLite    (data/raw/university.db)
+    3. PostgreSQL (localhost:5432)
+    4. MongoDB   (localhost:27017)
+    5. JSON      (data/raw/students_raw.json)
+    6. API       (dummyjson.com/users + cache fallback)
+    7. Scraper   (data/raw/web_students.html)
+"""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -9,6 +19,9 @@ from pipelines.sqlite_pipeline import SQLitePipeline
 from pipelines.postgres_pipeline import PostgresPipeline
 from pipelines.mongodb_pipeline import MongoDBPipeline
 from pipelines.json_pipeline import JSONPipeline
+from pipelines.api_pipeline import APIPipeline
+from pipelines.scraper_pipeline import ScraperPipeline
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("run_all")
 
@@ -51,6 +64,7 @@ def main():
         results.append(p.run())
     except Exception as exc:
         logger.error(f"MongoDB failed: {exc}")
+
     # 5. JSON
     try:
         p = JSONPipeline(
@@ -60,6 +74,20 @@ def main():
         results.append(p.run())
     except Exception as exc:
         logger.error(f"JSON failed: {exc}")
+
+    # 6. API (uses cache fallback if network fails)
+    try:
+        p = APIPipeline(output_dir=ROOT / "data/processed/api")
+        results.append(p.run())
+    except Exception as exc:
+        logger.error(f"API failed: {exc}")
+
+    # 7. Scraper (local HTML fixture)
+    try:
+        p = ScraperPipeline(output_dir=ROOT / "data/processed/scraper")
+        results.append(p.run())
+    except Exception as exc:
+        logger.error(f"Scraper failed: {exc}")
 
     # Summary
     logger.info("=" * 60)
