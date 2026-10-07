@@ -50,3 +50,15 @@ Thumbs.db
 # ─── University DB (generated) ───
 data/raw/university.db
 data/processed/student_performance.csv
+
+# ═══════════════════════════════════════════════════════════════
+# 🆕 v4.0.0 — Warehouse / OLAP Layer
+# ═══════════════════════════════════════════════════════════════
+# Gold layer (Parquet) is regenerable from OLTP sources.
+# To rebuild: python -m src.warehouse.star_schema
+data/gold/
+*.parquet.tmp
+
+# Future: PyArrow / DuckDB caches (if introduced)
+.pyarrow_cache/
+.duckdb/
