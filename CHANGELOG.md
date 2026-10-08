@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.0.0-dev] — Phase A — 2026-10-08
+### Added
+
+#### Feature Engineering Layer (Phase A)
+
+- **`src/features/engineering.py`** — `FeatureEngineer` class
+  - 6 engineered features:
+    - `attendance_rate` (Unit 6, p. 37)
+    - `academic_risk_score` (Unit 6, p. 51)
+    - `score_change` (Unit 3, pp. 36-38)
+    - `city_rank` (Unit 3, p. 33) — from TRAIN peers only
+    - `city_score_gap` — design extension
+    - `performance_level` (Unit 3, p. 19)
+  - Strict **Data Leakage Prevention** (Unit 9, pp. 76-77):
+    - Split TRAIN/TEST first
+    - Statistics computed from TRAIN ONLY
+    - City features from TRAIN peers only
+  - Idempotent (`random_state=42`)
+
+- **`src/features/__init__.py`** — PEP 562 lazy imports
+
+- **`tests/test_features.py`** — 22 new tests
+  - 3 leakage-prevention tests
+  - 1 idempotency test
+  - Full public API coverage
+
+- **`docs/FEATURE_STORE.md`** — Architecture + traceability
+
+### Changed
+
+- **`.gitignore`**: use recursive glob (`**/*.csv`) for processed outputs
+  - Fixes: `data/processed/*/file.csv` was previously tracked
+
+### Curriculum Coverage
+
+- Unit 3: LAG, RANK, CASE
+- Unit 4: Grain, Star Schema
+- Unit 6: Vectorization
+- Unit 9: Data Leakage Prevention
+- Unit 10: Idempotency
+- Guide Ch 4: Parquet; Ch 8: Grain
+
+### Test Count
+
+- v3.0.0: 140 passed
+- v4.0.0-dev (Phase A): **162 passed** (+22)
+
+### Baseline
+
+`b8a1a73`
+
+---
+
 ## [3.0.0] - 2026-10-06
 
 ### Added
