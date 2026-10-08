@@ -1,6 +1,6 @@
 # ─── Data (raw is tracked, processed is not) ───
-data/processed/*.csv
-data/processed/*.json
+data/processed/**/*.csv
+data/processed/**/*.json
 !data/processed/.gitkeep
 
 # ─── Database ───
