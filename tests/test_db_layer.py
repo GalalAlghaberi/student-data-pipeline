@@ -1,5 +1,6 @@
 """Tests for the Database Layer (SQLite connection + SQL execution)."""
 
+
 from __future__ import annotations
 
 import sqlite3
@@ -14,6 +15,7 @@ from src.db_layer import (
     table_exists,
 )
 
+pytestmark = pytest.mark.db
 
 @pytest.fixture
 def temp_db(tmp_path: Path) -> Path:

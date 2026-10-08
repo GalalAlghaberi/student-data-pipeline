@@ -25,6 +25,7 @@ import requests
 
 from pipelines.api_pipeline import APIClient, APIPipeline, CACHE_FILE
 
+pytestmark = pytest.mark.network     # ← ✅ آخر الـ imports
 
 # ---------------------------------------------------------------------------
 # Fixtures

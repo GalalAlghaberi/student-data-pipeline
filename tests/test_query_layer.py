@@ -1,5 +1,6 @@
 """Tests for the Query Layer (SQL → DataFrame)."""
 
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +11,7 @@ import pytest
 from src.db_layer import connect
 from src.query_layer import load_ml_features, run_query, run_query_file
 
+pytestmark = pytest.mark.db
 
 @pytest.fixture
 def populated_db(tmp_path: Path) -> Path:

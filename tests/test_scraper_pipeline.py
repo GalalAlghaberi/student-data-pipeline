@@ -26,6 +26,7 @@ from pipelines.scraper_pipeline import (
     StudentTableParser,
 )
 
+pytestmark = pytest.mark.network
 
 # ---------------------------------------------------------------------------
 # Fixtures

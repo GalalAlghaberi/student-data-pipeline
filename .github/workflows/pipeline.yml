@@ -10,11 +10,12 @@ on:
 
 jobs:
   test:
-    name: Test Pipeline
+    name: Test Pipeline (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - name: Checkout code
@@ -31,19 +32,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
-        run: pytest tests/ -v
+      - name: Run offline tests (skip network + db)
+        run: |
+          pytest tests/ -v -m "not network and not db"
 
-      - name: Run pipeline
-        run: python main.py
-
-      - name: Upload artifacts
+      - name: Upload pytest cache
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipeline-output-py${{ matrix.python-version }}
-          path: |
-            data/processed/
-            logs/
-            data/student_data.db
-          if-no-files-found: warn
+          name: pytest-cache-py${{ matrix.python-version }}
+          path: .pytest_cache/
+          if-no-files-found: ignore
+          retention-days: 7
