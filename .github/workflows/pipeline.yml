@@ -32,12 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Build offline artifacts (DB → Gold → Features)   # ← جديد
+      - name: Build offline artifacts (DB → Gold → Features)
         run: |
           python scripts/build_university_db.py
           python -m src.warehouse.star_schema
