@@ -22,8 +22,8 @@ INSERT INTO students (student_id, full_name, gender, date_of_birth, city) VALUES
     (1005, 'Omar Ahmed',     'Male',   '2004-09-01', 'Sanaa'),
     (1006, 'Huda Mohammed',  'Female', '2003-12-11', 'Dhamar'),
     (1007, 'Ali Hassan',     'Male',   '2002-05-18', 'Ibb'),
-    (1008, 'Noor Saleh',     'Female', '2004-02-25', 'Sanaa');
-
+    (1008, 'Noor Saleh',     'Female', '2004-02-25', 'Sanaa'),
+    (1009, 'Test Student', 'Male', '2003-06-10', 'Sanaa');
 -- ------------------------------------------------------------
 -- Courses
 -- ------------------------------------------------------------
@@ -50,7 +50,9 @@ INSERT INTO enrollments (enrollment_id, student_id, course_id, enrollment_date, 
     (10, 1005, 102, '2026-01-12', 'Spring 2026'),
     (11, 1006, 103, '2026-01-12', 'Spring 2026'),
     (12, 1007, 104, '2026-01-13', 'Spring 2026'),
-    (13, 1008, 105, '2026-01-13', 'Spring 2026');
+    (13, 1008, 105, '2026-01-13', 'Spring 2026'),
+    (14, 1009, 101, '2026-01-14', 'Spring 2026'),
+    (15, 1009, 102, '2026-01-14', 'Spring 2026');
 
 -- ------------------------------------------------------------
 -- Assessments
@@ -68,4 +70,6 @@ INSERT INTO assessments (assessment_id, student_id, course_id, assessment_type, 
     (19, 1005, 102, 'Midterm', 68), (20, 1005, 102, 'Final',  70),
     (21, 1006, 103, 'Midterm', 92), (22, 1006, 103, 'Final',  95),
     (23, 1007, 104, 'Midterm', 74), (24, 1007, 104, 'Final',  79),
-    (25, 1008, 105, 'Midterm', 96), (26, 1008, 105, 'Final',  98);
+    (25, 1008, 105, 'Midterm', 96), (26, 1008, 105, 'Final',  98),
+    (27, 1009, 101, 'Midterm', 85), (28, 1009, 101, 'Final', 90),
+    (29, 1009, 102, 'Midterm', 75), (30, 1009, 102, 'Final', 80);
