@@ -61,4 +61,11 @@ data/gold/
 
 # Future: PyArrow / DuckDB caches (if introduced)
 .pyarrow_cache/
-.duckdb/
+
+# ═══════════════════════════════════════════════════════════════
+# 🆕 v4.1.0 — Phase A (Polars Migration)
+# ═══════════════════════════════════════════════════════════════
+# Synthetic data (regenerable via src/features/synthetic_generator.py)
+data/synthetic/
+# Benchmark reports (regenerable via scripts/benchmark_pandas_vs_polars.py)
+data/reports/

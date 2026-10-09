@@ -4,7 +4,72 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v4.1.0-dev] — 2026-10-09
 
+### Added — Phase A: Polars Migration (Unit 6 + Guide Ch 5)
+
+- **`src/features/engineering_polars.py`** (~590 lines):
+  - `PolarsFeatureEngineer` class — parallel implementation of `FeatureEngineer`
+  - Polars-native Expressions: `pl.col()`, `pl.when()`, `.over()`, `.shift()`
+  - Lazy-compatible design; eager used for 1:1 parity with Pandas
+  - Data Leakage Prevention preserved (Unit 9, pp. 76-77)
+  - Deterministic (`random_state=42`)
+
+- **`src/features/synthetic_generator.py`** (~215 lines):
+  - `generate_synthetic(n_rows, seed=42)` — schema-valid at scale
+  - Constraints: gpa ∈ [0,4], attendance ∈ [0,100], age ∈ [16,80]
+  - Real cities from `dim_students.parquet`
+  - Used only for benchmarking (not committed to Git)
+
+- **`tests/test_features_polars.py`** (34 tests):
+  - 22 mirrored from `test_features.py` (with `_polars` suffix)
+  - 12 synthetic generator tests
+  - **1 critical parity test**: `test_polars_matches_pandas_output`
+    (hybrid: `allclose` for numerics, strict for categoricals)
+
+- **`scripts/benchmark_pandas_vs_polars.py`** (~330 lines):
+  - Sizes: 10K, 100K, 1M
+  - Methodology: 1 warm-up + 5 runs → median
+  - Metrics: wall time + peak memory (tracemalloc)
+
+- **`docs/POLARS_MIGRATION.md`** (~320 lines):
+  - Design decisions documented before code
+  - API translation map (Pandas → Polars)
+  - Hybrid test tolerance strategy
+
+- **`docs/BENCHMARK_RESULTS.md`**:
+  - Polars eager: **5.25x – 8.88x speedup**
+  - Lazy vs eager comparison (honest disclosure)
+  - Environment-specific results + honesty clause
+
+### Changed
+
+- **`src/features/__init__.py`**: PEP 562 lazy imports extended
+  to expose `PolarsFeatureEngineer` and `generate_synthetic`
+- **`.gitignore`**: added `data/synthetic/` (regenerable)
+
+### Test Count
+
+- **Before:** 162 passed
+- **After:** 196 passed (+34)
+- **CI offline target:** 124 (was 90; +34)
+
+### Golden Rules Compliance
+
+| # | Rule | Status |
+|---|---|---|
+| 1 | Add layer, don't replace | ✅ `engineering.py` untouched |
+| 2 | Each layer in its folder | ✅ `src/features/` |
+| 3 | 162 tests sacred | ✅ 0 regression (196 total) |
+| 4 | Documentation before code | ✅ POLARS_MIGRATION.md first |
+| 5 | CI stays green | ✅ 124 offline |
+
+### References
+
+- Unit 6 (Pandas / NumPy / Polars) — primary curriculum
+- Unit 9 (pp. 76-77) — Leakage Prevention preserved
+- Unit 11 — Testing & Documentation
+- Guide Ch 5 — Compute & Resources (now ~85% covered)
 ---
 
 ## [4.0.0-dev] — Phase A — 2026-10-08
