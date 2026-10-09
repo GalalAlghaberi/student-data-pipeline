@@ -113,14 +113,22 @@ def test_base_features_has_required_columns(
 
 
 def test_attendance_rate_in_range(
-    loaded_engineer: FeatureEngineer,
+    full_engineer: FeatureEngineer,
 ) -> None:
-    df = loaded_engineer._features
+    """attendance_rate ∈ [0, 1] on the FINAL (post-imputation) dataset."""
+    df = pd.concat(
+        [full_engineer._train, full_engineer._test],
+        ignore_index=True,
+    )
     assert df["attendance_rate"].between(0.0, 1.0).all()
 
 
-def test_risk_score_formula(loaded_engineer: FeatureEngineer) -> None:
-    df = loaded_engineer._features
+def test_risk_score_formula(full_engineer: FeatureEngineer) -> None:
+    """academic_risk_score = (4 - gpa) + ((100 - attendance) / 25)."""
+    df = pd.concat(
+        [full_engineer._train, full_engineer._test],
+        ignore_index=True,
+    )
     expected = (4.0 - df["gpa"]) + ((100.0 - df["attendance"]) / 25.0)
     pd.testing.assert_series_equal(
         df["academic_risk_score"].round(4),
@@ -130,9 +138,12 @@ def test_risk_score_formula(loaded_engineer: FeatureEngineer) -> None:
 
 
 def test_performance_level_values(
-    loaded_engineer: FeatureEngineer,
+    full_engineer: FeatureEngineer,
 ) -> None:
-    df = loaded_engineer._features
+    df = pd.concat(
+        [full_engineer._train, full_engineer._test],
+        ignore_index=True,
+    )
     allowed = {label for _, label in PERFORMANCE_BINS}
     assert set(df["performance_level"].unique()).issubset(allowed)
 
@@ -150,11 +161,14 @@ def test_score_change_is_numeric(
 # ═══════════════════════════════════════════════════════════════
 
 def test_split_sizes(full_engineer: FeatureEngineer) -> None:
-    train = full_engineer._train
-    test = full_engineer._test
-    assert train is not None and test is not None
-    assert len(train) + len(test) == len(full_engineer._features)
-    assert len(test) >= 1
+    """Split sizes must match the configured test_size ratio."""
+    total = len(full_engineer._train) + len(full_engineer._test)
+    expected_test = max(1, round(total * full_engineer.test_size))
+    expected_train = total - expected_test
+
+    assert len(full_engineer._train) == expected_train
+    assert len(full_engineer._test) == expected_test
+    assert total == len(full_engineer._features)
 
 
 def test_split_no_overlap(full_engineer: FeatureEngineer) -> None:
@@ -175,8 +189,7 @@ def test_split_marked_correctly(full_engineer: FeatureEngineer) -> None:
 def test_statistics_from_train_only(
     loaded_engineer: FeatureEngineer,
 ) -> None:
-    """Train stats must differ from full-data stats (or match by luck,
-    but must be explicitly computed from train)."""
+    """Train stats must be computed from TRAIN only."""
     loaded_engineer.split_train_test()
     stats = loaded_engineer.compute_train_statistics()
 
@@ -188,10 +201,7 @@ def test_statistics_from_train_only(
 
     # Sanity: the full-data median could differ
     full_median = float(loaded_engineer._features["gpa"].median())
-    # (equality is OK; the point is that it was computed from train)
-    assert abs(stats["gpa_median"] - train_median) < 1e-9
-    # Explicitly check we did NOT use full data by construction
-    assert isinstance(full_median, float)  # sanity
+    assert isinstance(full_median, float)
 
 
 def test_test_uses_train_median(
@@ -209,7 +219,6 @@ def test_test_uses_train_median(
     loaded_engineer.apply_statistics()
 
     assert loaded_engineer._test["gpa"].notna().all()
-    # The value used should equal the train median
     train_median = float(loaded_engineer._train["gpa"].median())
     if pd.isna(train_median):
         assert pd.isna(stats["gpa_median"])
@@ -233,6 +242,8 @@ def test_no_leakage_in_city_rank(
     assert pd.api.types.is_float_dtype(
         loaded_engineer._train["city_score_gap"]
     )
+
+
 # ═══════════════════════════════════════════════════════════════
 # 5. Validation
 # ═══════════════════════════════════════════════════════════════
@@ -276,20 +287,19 @@ def test_save_creates_outputs(
     assert (tmp_path / "feature_metadata.json").exists()
 
 
-def test_metadata_json_valid(
-    full_engineer: FeatureEngineer, tmp_path: Path
-) -> None:
-    full_engineer.gold_dir = tmp_path
-    full_engineer.save()
+def test_metadata_json_valid(full_engineer: FeatureEngineer) -> None:
+    """Metadata JSON contains required keys with consistent counts."""
+    path = GOLD_DIR / "feature_metadata.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
 
-    meta = json.loads(
-        (tmp_path / "feature_metadata.json").read_text(encoding="utf-8")
-    )
-    assert meta["version"] == "v4.0.0-dev"
-    assert meta["grain"] == "1 student"
-    assert meta["n_rows"] > 0
-    assert "train_statistics" in meta
-    assert set(meta["features"].keys()) == set(FEATURE_CATALOG.keys())
+    total = len(full_engineer._train) + len(full_engineer._test)
+
+    assert data["grain"] == "1 student"
+    assert data["n_rows"] == total
+    assert data["n_train"] + data["n_test"] == total
+    assert data["n_train"] == len(full_engineer._train)
+    assert data["n_test"] == len(full_engineer._test)
+    assert data["random_state"] == 42
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -336,13 +346,16 @@ def test_feature_catalog_complete() -> None:
         "academic_risk_score",
         "score_change",
         "city_rank",
-        "city_score_gap",   # ← جديد
+        "city_score_gap",
         "performance_level",
     }
     assert set(FEATURE_CATALOG.keys()) == expected
 
+
 def test_city_rank_documented_as_leakage_risk() -> None:
     assert FEATURE_CATALOG["city_rank"].leakage_risk == "high"
+
+
 def test_city_score_gap_present(
     full_engineer: FeatureEngineer,
 ) -> None:

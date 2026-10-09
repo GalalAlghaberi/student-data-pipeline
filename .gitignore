@@ -69,3 +69,4 @@ data/gold/
 data/synthetic/
 # Benchmark reports (regenerable via scripts/benchmark_pandas_vs_polars.py)
 data/reports/
+data/playground/

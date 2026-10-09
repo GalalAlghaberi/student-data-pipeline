@@ -61,12 +61,17 @@ def engineer() -> PolarsFeatureEngineer:
 # ═══════════════════════════════════════════════════════════════
 
 def test_load_gold_tables_polars() -> None:
-    """Gold layer loads all 6 tables with expected row counts."""
+    """Gold layer loads all 6 tables with expected row counts.
+
+    Current dataset (after adding student 1009 + 2 enrollments):
+      - 9 students (8 original + 1009)
+      - 30 assessments (26 original + 4 for 1009)
+    """
     eng = PolarsFeatureEngineer()
     eng.load_gold()
     assert len(eng.tables) == 6
-    assert eng.tables["dim_students"].height == 8
-    assert eng.tables["fact_student_performance"].height == 26
+    assert eng.tables["dim_students"].height == 9
+    assert eng.tables["fact_student_performance"].height == 30
 
 
 def test_load_gold_fails_on_missing_dir_polars(tmp_path: Path) -> None:
@@ -146,10 +151,18 @@ def test_performance_level_values_polars(
 # ═══════════════════════════════════════════════════════════════
 
 def test_split_sizes_polars(engineer: PolarsFeatureEngineer) -> None:
-    """6 train + 2 test = 8 total."""
-    assert engineer._train.height == 6
-    assert engineer._test.height == 2
-    assert engineer._train.height + engineer._test.height == 8
+    """Split sizes must match the configured test_size ratio."""
+    total = engineer._train.height + engineer._test.height
+    expected_test = max(1, round(total * engineer.test_size))
+    expected_train = total - expected_test
+
+    assert engineer._train.height == expected_train, (
+        f"train: expected {expected_train}, got {engineer._train.height}"
+    )
+    assert engineer._test.height == expected_test, (
+        f"test: expected {expected_test}, got {engineer._test.height}"
+    )
+    assert total == engineer._features.height
 
 
 def test_split_no_overlap_polars(engineer: PolarsFeatureEngineer) -> None:
@@ -330,13 +343,17 @@ def test_save_creates_outputs_polars(
 def test_metadata_json_valid_polars(
     engineer: PolarsFeatureEngineer,
 ) -> None:
-    """Metadata JSON contains required keys."""
+    """Metadata JSON contains required keys with consistent counts."""
     path = GOLD_DIR_DEFAULT / "feature_metadata_polars.json"
     data = json.loads(path.read_text(encoding="utf-8"))
+
+    total = engineer._train.height + engineer._test.height
+
     assert data["grain"] == "1 student"
-    assert data["n_rows"] == 8
-    assert data["n_train"] == 6
-    assert data["n_test"] == 2
+    assert data["n_rows"] == total
+    assert data["n_train"] + data["n_test"] == total
+    assert data["n_train"] == engineer._train.height
+    assert data["n_test"] == engineer._test.height
     assert data["random_state"] == 42
     assert "features" in data
     assert "train_statistics" in data
