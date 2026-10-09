@@ -13,12 +13,24 @@ def connect(db_file: Path) -> sqlite3.Connection:
     """
     Open a SQLite connection with foreign keys enforced.
 
+    SQLite disables foreign key enforcement by default (per-connection
+    setting). We enable it explicitly so that referential integrity is
+    honored at the storage layer (Unit 4, pp. 14-15).
+
     Caller is responsible for closing — prefer `with connect(...)`.
     """
     db_file.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_file)
     conn.execute("PRAGMA foreign_keys = ON")
-    logger.info("Connected to %s", db_file)
+
+    # Defensive: verify enforcement actually took effect.
+    # Some SQLite builds silently ignore PRAGMA in edge cases.
+    fk_status = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+    logger.info(
+        "Connected to %s (foreign_keys=%s)",
+        db_file,
+        "ENABLED" if fk_status else "DISABLED",
+    )
     return conn
 
 
