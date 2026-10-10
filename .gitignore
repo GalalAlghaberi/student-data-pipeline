@@ -79,3 +79,6 @@ data/raw/uci/inspection_report.txt
 
 # UCI ETL output (regenerable via pipelines/uci_pipeline.py)
 data/processed/uci_clean.parquet
+
+# Silver layer (regenerable via src/warehouse/silver_merge.py)
+data/silver/
