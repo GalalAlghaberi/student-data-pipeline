@@ -1,19 +1,17 @@
-# Data Sources & Scale-Up Plan
-# مصادر البيانات وخطة التوسّع إلى $N \ge 1000$ طالب
+# Data Sources & Scale-Up Plan # مصادر البيانات وخطة التوسّع إلى $N \ge 1000$ طالب
 
-**Version:** v4.3.0-dev
-**Baseline:** b3f6f48 (Phase B Day 1 complete)
-**Status:** 🔵 Planned → In Progress
-**Reference:** Unit 9 (Data Quality) + Guide Ch 6 (OLAP) + Guide Ch 12 (Repeatable)
-**Author:** Galal Al-Ghaberi
-**Date:** 2026-10-10
+**Version:** v4.3.0-dev  
+**Baseline:** b3f6f48 (Phase B Day 1 complete)  
+**Status:** 🔵 Planned → In Progress  
+**Reference:** Unit 9 (Data Quality) + Guide Ch 6 (OLAP) + Guide Ch 12 (Repeatable)  
+**Author:** Galal Al-Ghaberi  
+**Date:** 2026-10-10  
 
 ---
 
 ## 1. Objective
 
 Increase the ML dataset from **$N=9$** (current `ml_features.parquet`) to **$N \ge 1000$** by integrating a real-world public dataset, while:
-
 1. Preserving the existing 7 pipelines and 9-row baseline (Golden Rule 1).
 2. Introducing a **Silver Merge** layer to unify all sources.
 3. Enabling ML at scale: new CV strategy, new models, production-ready.
@@ -63,8 +61,10 @@ Increase the ML dataset from **$N=9$** (current `ml_features.parquet`) to **$N \
 | **Columns** | 33 |
 | **Format** | CSV, separator = `;`, all values quoted |
 | **Missing values** | 0 |
-| **Duplicate students** | 382 (appear in both files) |
-| **Unique students** | 662 |
+| **Shared distinct keys** | 366 (13-key matches in both files) |
+| **R's merge pairs** | 382 (row-pairs, not distinct students) |
+| **Unique students** | 662 (each = one 13-key) |
+| **Multi-record students** | 369 ($\ge 2$ records; 366 shared + 3 within-file) |
 
 ### 3.2 Column Reference (from `student.txt`)
 
@@ -81,11 +81,11 @@ G1, G2, G3 (target: G3, 0-20)
 
 | Reason | Explanation |
 |---|---|
-| **Real** | 100% real student data, not synthetic |
-| **Proven** | Cited in 100+ academic papers |
-| **Rich** | 33 columns covering demographics, behavior, and grades |
-| **Target ready** | `G3` is a natural regression target |
-| **Free** | CC0 license — no restrictions |
+| Real | 100% real student data, not synthetic |
+| Proven | Cited in 100+ academic papers |
+| Rich | 33 columns covering demographics, behavior, and grades |
+| Target ready | G3 is a natural regression target |
+| Free | CC0 license — no restrictions |
 
 ---
 
@@ -95,46 +95,41 @@ Each UCI row will be transformed to match our project's unified schema:
 
 | Unified field | UCI source | Transform |
 |---|---|---|
-| `student_id` | *(generated)* | `S0000` … `S0661` (one per unique student) |
-| `name` | *(generated)* | `Student_XXXX` |
+| `student_id` | (generated) | `S0000` … `S0661` (one per unique student) |
+| `name` | (generated) | `Student_XXXX` |
 | `age` | `age` | direct |
-| `gender` | `sex` | `M` → `Male`, `F` → `Female` |
-| `city` | `school` + `address` | e.g. `"GP-U"`, `"GP-R"`, `"MS-U"`, `"MS-R"` |
-| `gpa` | `G3` | `G3 / 5.0` (scale 0-20 → 0-4) |
+| `gender` | `sex` | M → Male, F → Female |
+| `city` | `school` + `address` | e.g., "GP-U", "GP-R", "MS-U", "MS-R" |
+| `gpa` | `G3` | `G3 / 5.0` (scale 0–20 → 0–4) |
 | `attendance_rate` | `absences` | `clip(1 - absences/100, 0, 1)` |
-| `n_assessments` | *(derived)* | `3` (G1, G2, G3) |
+| `n_assessments` | (derived) | 3 (`G1`, `G2`, `G3`) |
 | `score_change` | `G3 - G1` | direct |
-| `course` | *(from filename)* | `"math"` or `"portuguese"` |
-| `source` | *(constant)* | `"uci"` |
+| `course` | (from filename) | `"math"` or `"portuguese"` |
+| `source` | (constant) | `"uci"` |
 
 ### 4.1 Extra fields kept (for future experiments)
 
-To enable richer downstream analyses, we **keep** the following:
-
+To enable richer downstream analyses, we keep the following:
 ```text
 school, address, famsize, Pstatus, Medu, Fedu,
 Mjob, Fjob, studytime, failures, Dalc, Walc, health,
 score_1 (G1), score_2 (G2), score_final (G3)
 ```
-
-These are **excluded from ML features** (leakage audit applies) but retained for analytical exploration.
+These are excluded from ML features (leakage audit applies) but retained for analytical exploration.
 
 ---
 
 ## 5. Design Decisions
 
 ### 5.1 Decision 1 — Dedup strategy
-
-**Chosen:** Keep all 1,044 rows + `GroupKFold` by `student_id`.
-
+**Chosen:** Keep all 1,044 rows + GroupKFold by `student_id`.  
 **Rationale:**
 - Uses maximal data.
 - Preserves the natural "same student, two courses" structure.
-- Prevents a subtle form of **leakage**: if we randomly split, the same student's two records could land in train and test, with nearly identical features but different targets (math vs portuguese `G3`).
-- Introduces `GroupKFold` — a transferable ML concept.
+- Prevents a subtle form of leakage: if we randomly split, the same student's two records could land in train and test, with nearly identical features but different targets (math vs portuguese G3).
+- Introduces **GroupKFold** — a transferable ML concept.  
 
 **Implementation:**
-
 ```python
 from sklearn.model_selection import GroupKFold
 
@@ -142,37 +137,29 @@ cv = GroupKFold(n_splits=5)
 for train_idx, test_idx in cv.split(X, y, groups=df["student_id"]):
     ...
 ```
-
 **Risk:** A student in train also appears in test if the 13-key merge is wrong.  
 **Mitigation:** Verify unique student count = 662 in ETL tests.
 
 ### 5.2 Decision 2 — absences outliers
-
-**Chosen:** Clip to 99th percentile of combined data.
-
+**Chosen:** Clip to 99th percentile of combined data.  
 **Rationale:**
 - Math has extreme values (max = 75 days) that would compress `attendance_rate` to $\approx 0.25$ for those students.
 - Clipping at 99th percentile preserves 99% of the distribution while eliminating single-digit outliers.
-- Uses combined threshold (not per-file) for consistency.
+- Uses combined threshold (not per-file) for consistency.  
 
 **Implementation:**
-
 ```python
 threshold = combined_df["absences"].quantile(0.99)
 df["absences"] = df["absences"].clip(upper=threshold)
 ```
-
 Expected threshold: $\approx 25–30$ (to be verified in ETL).
 
 ### 5.3 Decision 3 — G3 = 0 rows
-
-**Chosen:** Keep as `gpa = 0.0` (real failure).
-
+**Chosen:** Keep as `gpa = 0.0` (real failure).  
 **Rationale:**
 - UCI documentation states G3 is the final grade (0–20).
 - A 0 is a legitimate failing grade, not a missing value.
-- Removing these rows would bias the model toward "successful students only".
-
+- Removing these rows would bias the model toward "successful students only".  
 **Implementation:** No special handling — direct `gpa = G3 / 5.0`.
 
 ---
@@ -181,14 +168,12 @@ Expected threshold: $\approx 25–30$ (to be verified in ETL).
 
 ### 6.1 Why is this needed?
 Both `student-mat.csv` and `student-por.csv` lack a `student_id` column. The R script (`student-merge.R`) identifies duplicate students by matching 13 attributes:
-
 ```text
 school, sex, age, address, famsize, Pstatus,
 Medu, Fedu, Mjob, Fjob, reason, nursery, internet
 ```
 
 ### 6.2 Algorithm
-
 ```text
 1. Concatenate both files vertically (add `course` column).
 2. For each unique combination of the 13 keys, assign the same student_id.
@@ -196,13 +181,17 @@ Medu, Fedu, Mjob, Fjob, reason, nursery, internet
 ```
 
 ### 6.3 Verification
-
 ```text
-Expected unique students: 662
-Expected total rows:      1,044
-Expected duplicates:      382
-These numbers are asserted in tests/test_uci_pipeline.py.
+Expected unique students:       662
+Expected total rows:            1,044
+Expected multi-record students: 369 (≥2 records)
+Expected single-record students: 293 (exactly 1 record)
+R's merge reports 382 pairs (row-pairs, not distinct students).
 ```
+
+> **Note on the '382' from `student-merge.R`:**  
+> R's inner join on 13 keys yields `nrow(d3) = 382` PAIRS of `(math_row, por_row)`. When a student has multiple rows per file (within-file 13-key collision), R generates multiple pairs per student. Our algorithm assigns one `student_id` per unique 13-key, so 369 DISTINCT students have $\ge 2$ records.  
+> These numbers are asserted in `tests/test_uci_pipeline.py`.
 
 ---
 
@@ -210,7 +199,6 @@ These numbers are asserted in tests/test_uci_pipeline.py.
 
 ### 7.1 Why GroupKFold?
 Standard KFold randomly assigns rows to folds. With duplicate students:
-
 ```text
 Student S0042 → row_1 (math, absences=2, G3=10)
               → row_2 (por,  absences=2, G3=14)
@@ -221,15 +209,12 @@ Random split might do:
 
 Result: near-identical X, different y → apparent overfitting.
 ```
-
 GroupKFold guarantees:
-
 ```text
 All rows of student S0042 → same fold (either all train or all test).
 ```
 
 ### 7.2 Configuration
-
 | Parameter | Value | Reason |
 |---|---|---|
 | `n_splits` | 5 | Standard for $N \approx 1000$ |
@@ -237,12 +222,11 @@ All rows of student S0042 → same fold (either all train or all test).
 | `shuffle` | N/A | GroupKFold has no shuffle |
 
 ### 7.3 Comparison with Day 1
-
-| Aspect | Day 1 (N=9) | Scale-Up (N=1044) |
+| Aspect | Day 1 ($N=9$) | Scale-Up ($N=1044$) |
 |---|---|---|
 | Primary CV | LeaveOneOut | GroupKFold(5) |
 | Secondary CV | KFold(3) | KFold(5) on aggregated 662 |
-| Reason | N too small for folds | N large enough for 5-fold |
+| Reason | $N$ too small for folds | $N$ large enough for 5-fold |
 
 ---
 
@@ -256,7 +240,6 @@ Currently, `star_schema.py` reads only from `university.db` (9 students). The 7 
 - Producing a single unified dataset.
 
 ### 8.2 Architecture (side-by-side, honoring Golden Rule 1)
-
 ```text
 Bronze Layer
   ├── 7 existing sources (data/raw/)
@@ -287,7 +270,6 @@ ML Layer (side-by-side)
 ```
 
 ### 8.3 Why side-by-side?
-
 | Approach | Risk | Verdict |
 |---|---|---|
 | Refactor `star_schema.py` | Breaks 26 warehouse tests + 22 feature tests | ❌ |
@@ -299,7 +281,7 @@ ML Layer (side-by-side)
 
 ## 9. Phase Plan
 
-### 9.1 Phase B.5 — UCI Integration (2-3 days)
+### 9.1 Phase B.5 — UCI Integration (2–3 days)
 **Goal:** Load UCI data and produce unified-schema parquet.
 
 | # | File | Deliverable |
@@ -311,7 +293,7 @@ ML Layer (side-by-side)
 | B.5.5 | `tests/test_uci_pipeline.py` | ~15 tests |
 | B.5.6 | `docs/UCI_ETL.md` | ETL documentation |
 
-### 9.2 Phase B.6 — Silver Merge (4-5 days)
+### 9.2 Phase B.6 — Silver Merge (4–5 days)
 **Goal:** Unify all sources into `data/silver/unified_students.parquet`.
 
 | # | File | Deliverable |
@@ -324,7 +306,7 @@ ML Layer (side-by-side)
 | B.6.6 | `src/warehouse/star_schema_v2.py` | Gold v2 |
 | B.6.7 | `data/gold/ml_features_large.parquet` | ML input |
 
-### 9.3 Phase B.7 — ML Scale-Up (3-4 days)
+### 9.3 Phase B.7 — ML Scale-Up (3–4 days)
 **Goal:** Run ML on $N \ge 1000$ with proper CV.
 
 | # | File | Deliverable |
@@ -354,6 +336,7 @@ ML Layer (side-by-side)
 ---
 
 ## 11. Success Criteria
+
 Phase B.5 + B.6 + B.7 complete when:
 
 | # | Criterion | Verification |
@@ -377,9 +360,9 @@ Phase B.5 + B.6 + B.7 complete when:
 
 | Phase | Duration | Cumulative |
 |---|---|---|
-| B.5 | 2-3 days | 2-3 days |
-| B.6 | 4-5 days | 6-8 days |
-| B.7 | 3-4 days | 9-12 days |
+| B.5 | 2–3 days | 2–3 days |
+| B.6 | 4–5 days | 6–8 days |
+| B.7 | 3–4 days | 9–12 days |
 
 ---
 
@@ -415,6 +398,8 @@ Phase B.5 + B.6 + B.7 complete when:
 | Version | Date | Change |
 |---|---|---|
 | v0.1 | 2026-10-10 | Initial draft after UCI inspection |
+
+---
 
 **Last Updated:** 2026-10-10  
 **Status:** 🔵 Planned → In Progress  
