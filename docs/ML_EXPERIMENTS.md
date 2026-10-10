@@ -221,8 +221,53 @@ data/gold/
 | 4 | Non-deterministic results | REFERENCE_DATE + random_state=42 |
 | 5 | Small N → high variance | Report both LOO and KFold |
 | 6 | Age drifting over time | Fixed REFERENCE_DATE |
+## 12. Findings (2026-10-10)
 
-## 12. Version History
+### 12.1 Main results (LOO, N=9)
+
+| Model | MAE | RMSE | R² |
+|---|---|---|---|
+| Baseline (mean) | 0.340 | 0.340 | NaN* |
+| **LinearRegression** | **0.120** ⭐ | **0.120** | NaN* |
+| Ridge(α=1.0) | 0.297 | 0.297 | NaN* |
+
+*R² undefined for LOO (n_test=1) — see §7.
+
+### 12.2 Counterintuitive result: Ridge underperforms
+
+**Expected:** Ridge (L2) should beat unregularized LinearRegression on N=9.
+**Observed:** Ridge MAE 0.297 vs Linear 0.120 — Ridge is ~2.5× worse.
+
+**Diagnosis:**
+- N_train = 8 per fold (LOO).
+- α=1.0 is too strong: shrinks coefficients excessively.
+- Linear regression has ~9-10 dims after OneHot(city/gender).
+- With N=8, moderate regularization hurts more than it helps.
+
+**Implication for Day 2:**
+- Do NOT lower α in Day 1 (per §6.3: "no tuning in Day 1").
+- Day 2 experiment: sweep α ∈ {0.01, 0.1, 1.0, 10.0} and report the curve.
+
+### 12.3 KFold(3) is high-variance (as predicted)
+
+R² values: -21.77 (baseline), -12.42 (linear), -30.51 (ridge).
+Cause: n_test = 3 → tiny SS_tot → unstable R² (see §5).
+Conclusion: LOO is the primary scheme; KFold3 is reported for transparency only.
+
+### 12.4 What this proves
+
+- The ML pipeline works end-to-end on the Phase A feature store.
+- Leakage-safe features (6 total) carry **linear signal**: LinearRegression
+  beats the mean baseline by 0.22 GPA points MAE on LOO.
+- N=9 is a hard constraint for statistical conclusions; results are
+  educational, not predictive.
+
+### 12.5 Persisted artifacts
+
+- `data/gold/model_metrics.csv` (36 rows — per-fold)
+- `data/gold/model_metrics.json` (6 summaries — per cv×model)
+- Both regenerable via: `python scripts/run_ml_pipeline.py`
+## 13. Version History
 
 | Version | Date | Change |
 |---|---|---|
