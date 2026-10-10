@@ -9,7 +9,12 @@ Why three metrics?
   - RMSE: penalizes large errors (sensitive to outliers).
   - R²:   normalized against the mean baseline.
 
-All metrics are aggregated as (mean, std) across CV folds.
+Edge case — R² on LOO:
+  LeaveOneOut folds have n_test = 1. R² is undefined for a single
+  sample (SS_tot = 0 → division by zero). We return NaN silently
+  instead of letting sklearn emit UndefinedMetricWarning on every
+  fold. `aggregate()` excludes NaN and reports `n_valid` so callers
+  know how many folds actually contributed to r2_mean / r2_std.
 """
 
 from __future__ import annotations
@@ -44,16 +49,23 @@ def rmse(y_true, y_pred) -> float:
 
 
 def r2(y_true, y_pred) -> float:
-    """R² score (unitless). May be negative for small N."""
+    """R² score (unitless). Returns NaN when n < 2 (undefined).
+
+    LOO folds have n_test=1 → R² is undefined. We return NaN silently
+    to avoid sklearn's UndefinedMetricWarning spam.
+    """
+    y_true = np.asarray(y_true).ravel()
+    if y_true.size < 2:
+        return float("nan")
     return float(r2_score(y_true, y_pred))
 
 
 def compute_all(y_true, y_pred) -> dict[str, float]:
     """Return {mae, rmse, r2} for one fold."""
     return {
-        "mae": mae(y_true, y_pred),
+        "mae":  mae(y_true, y_pred),
         "rmse": rmse(y_true, y_pred),
-        "r2": r2(y_true, y_pred),
+        "r2":   r2(y_true, y_pred),
     }
 
 
@@ -62,18 +74,22 @@ def compute_all(y_true, y_pred) -> dict[str, float]:
 # ─────────────────────────────────────────────────────────────
 
 def aggregate(fold_metrics: list[dict[str, float]]) -> dict[str, dict]:
-    """Aggregate a list of fold metric dicts into {metric: {mean, std}}.
+    """Aggregate fold metric dicts into {metric: {mean, std, n_valid}}.
+
+    NaN values (e.g., R² on LOO's single-sample folds) are excluded
+    from mean/std and reported via `n_valid`.
 
     Args:
         fold_metrics: One dict per fold (output of `compute_all`).
 
     Returns:
         {
-          "mae":  {"mean": ..., "std": ...},
-          "rmse": {"mean": ..., "std": ...},
-          "r2":   {"mean": ..., "std": ...},
+          "mae":  {"mean": ..., "std": ..., "n_valid": N},
+          "rmse": {"mean": ..., "std": ..., "n_valid": N},
+          "r2":   {"mean": ..., "std": ..., "n_valid": N},
           "n_folds": int,
         }
+        When n_valid == 0 for a metric, mean/std are NaN.
     """
     if not fold_metrics:
         raise ValueError("fold_metrics is empty")
@@ -81,10 +97,20 @@ def aggregate(fold_metrics: list[dict[str, float]]) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for name in METRIC_NAMES:
         values = np.array([fm[name] for fm in fold_metrics], dtype=float)
-        out[name] = {
-            "mean": float(values.mean()),
-            "std": float(values.std(ddof=1)) if len(values) > 1 else 0.0,
-        }
+        valid = ~np.isnan(values)
+        n_valid = int(valid.sum())
+        if n_valid == 0:
+            out[name] = {
+                "mean": float("nan"),
+                "std":  float("nan"),
+                "n_valid": 0,
+            }
+        else:
+            out[name] = {
+                "mean": float(values[valid].mean()),
+                "std":  float(values[valid].std(ddof=1)) if n_valid > 1 else 0.0,
+                "n_valid": n_valid,
+            }
     out["n_folds"] = len(fold_metrics)
     return out
 
@@ -114,9 +140,13 @@ def main() -> None:
     for k, v in compute_all(y_true, y_pred_perfect).items():
         print(f"  {k:5s}: {v:.6f}")
 
-    print("\nMean baseline (expect r2≈0):")
+    print("\nMean baseline (expect r2=0):")
     for k, v in compute_all(y_true, y_pred_baseline).items():
         print(f"  {k:5s}: {v:.6f}")
+
+    print("\nSingle-sample fold (expect r2=NaN):")
+    for k, v in compute_all(y_true[:1], y_pred_baseline[:1]).items():
+        print(f"  {k:5s}: {v}")
 
     print("\nAggregation over 3 fake folds:")
     folds = [
@@ -127,7 +157,25 @@ def main() -> None:
     agg = aggregate(folds)
     for k, v in agg.items():
         if isinstance(v, dict):
-            print(f"  {k:5s}: mean={v['mean']:.4f}  std={v['std']:.4f}")
+            print(
+                f"  {k:5s}: mean={v['mean']:.4f}  "
+                f"std={v['std']:.4f}  n_valid={v['n_valid']}"
+            )
+        else:
+            print(f"  {k:5s}: {v}")
+
+    print("\nAggregation with NaN (2 folds, 1 has r2=NaN):")
+    folds_nan = [
+        compute_all(y_true, y_pred_perfect),
+        compute_all(y_true[:1], y_pred_perfect[:1]),   # ← r2 = NaN
+    ]
+    agg_nan = aggregate(folds_nan)
+    for k, v in agg_nan.items():
+        if isinstance(v, dict):
+            print(
+                f"  {k:5s}: mean={v['mean']:.4f}  "
+                f"std={v['std']:.4f}  n_valid={v['n_valid']}"
+            )
         else:
             print(f"  {k:5s}: {v}")
 
