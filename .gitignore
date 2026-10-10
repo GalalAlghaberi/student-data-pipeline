@@ -76,3 +76,6 @@ data/playground/
 # ═══════════════════════════════════════════════════════════════
 # Derived inspection report (regenerable via scripts/inspect_uci_data.py)
 data/raw/uci/inspection_report.txt
+
+# UCI ETL output (regenerable via pipelines/uci_pipeline.py)
+data/processed/uci_clean.parquet
