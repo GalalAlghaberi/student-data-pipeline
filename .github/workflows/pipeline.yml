@@ -32,12 +32,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build offline artifacts (DB → Gold → Features)
+      - name: Build offline artifacts (DB → Gold → Features → UCI → Silver)
         run: |
           python scripts/build_university_db.py
           python -m src.warehouse.star_schema
           python -m src.features.engineering
           python -m src.features.engineering_polars
+          python -m pipelines.uci_pipeline
+          python -m src.warehouse.silver_merge
 
       - name: Run offline tests (skip network + db)
         run: |
