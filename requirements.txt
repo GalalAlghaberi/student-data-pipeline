@@ -3,7 +3,6 @@
 # ═══════════════════════════════════════════════════════════════
 # Version: v4.0.0-dev
 # Python: >=3.11
-# scikit-learn>=1.5
 # Install:
 #   pip install -r requirements.txt
 #
@@ -21,6 +20,9 @@ pyarrow>=15.0
 
 # ─── Modern DataFrame Engine (Unit 6) ────────────────────────────
 polars>=1.0
+
+# ─── Machine Learning (Phase B) ──────────────────────────────────
+scikit-learn>=1.5
 
 # ─── Databases ───────────────────────────────────────────────────
 psycopg2-binary>=2.9      # PostgreSQL adapter
