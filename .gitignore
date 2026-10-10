@@ -70,3 +70,9 @@ data/synthetic/
 # Benchmark reports (regenerable via scripts/benchmark_pandas_vs_polars.py)
 data/reports/
 data/playground/
+
+# ═══════════════════════════════════════════════════════════════
+# 🆕 v4.3.0 — Phase B.5 (UCI Scale-Up)
+# ═══════════════════════════════════════════════════════════════
+# Derived inspection report (regenerable via scripts/inspect_uci_data.py)
+data/raw/uci/inspection_report.txt
