@@ -7,13 +7,15 @@ Reference: docs/ML_EXPERIMENTS_SCALE.md §3, §4, §9
 """
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
 from src.ml import data_v2
+from src.ml import pipeline_v2
 from src.ml import split_v2
 from src.ml import trainer_v2
-
 
 # ═══════════════════════════════════════════════════════════════
 # Test 1 — UCI-only row count
@@ -332,3 +334,112 @@ def test_extract_feature_importance_rf(numeric_holdout):
     assert all(0.0 <= v <= 1.0 for v in imps.values())
     # Sum of Gini importances is ~1.0
     assert abs(sum(imps.values()) - 1.0) < 1e-6
+
+
+# ═══════════════════════════════════════════════════════════════
+# B.7.5 — pipeline_v2 tests
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.fixture(scope="module")
+def small_run(tmp_path_factory):
+    """Run pipeline_v2 on a minimal subset: FS-A + group_kfold_3 only.
+
+    Fast (~10s) yet covers the full matrix machinery.
+    Returns (fold_df, importance_df, summary_df).
+    """
+    gold_dir = tmp_path_factory.mktemp("gold_v2")
+    fold_df, importance_df = pipeline_v2.run_pipeline_v2(
+        gold_dir=gold_dir,
+        feature_sets=("A",),
+        cv_schemes=("group_kfold_3",),
+    )
+    summary_df = pipeline_v2.summarize_v2(fold_df)
+    return fold_df, importance_df, summary_df
+
+
+# ─── Preprocessor ──────────────────────────────────────────────
+
+def test_build_preprocessor_fs_a():
+    """FS-A preprocessor encodes 3 numeric + 3 categorical = 2 + 3 = 5 cols."""
+    pre = pipeline_v2.build_preprocessor("A")
+    # Expected output columns: 2 numeric passthrough + 2 gender + 3 city + 1 course
+    # (drop='first' removes one per categorical)
+    assert pre is not None
+
+
+def test_build_preprocessor_fs_b_has_more_columns():
+    """FS-B includes 2 extra numeric features (score_1, score_2)."""
+    pre_a = pipeline_v2.build_preprocessor("A")
+    pre_b = pipeline_v2.build_preprocessor("B")
+    # Both should be ColumnTransformers with the same transformer names
+    assert [name for name, _, _ in pre_a.transformers] == ["num", "cat"]
+    assert [name for name, _, _ in pre_b.transformers] == ["num", "cat"]
+
+
+# ─── Small run — shape + registry ──────────────────────────────
+
+def test_small_run_fold_df_shape(small_run):
+    """GroupKFold3 × 5 models × FS-A = 15 fold-rows (3 folds × 5 models)."""
+    fold_df, _, _ = small_run
+    assert len(fold_df) == 15
+    assert set(fold_df.columns) >= {"fs", "cv", "model", "fold", "mae", "rmse", "r2"}
+
+
+def test_small_run_cv_and_models(small_run):
+    """Only configured CV and models appear."""
+    fold_df, _, _ = small_run
+    assert set(fold_df["cv"].unique()) == {"group_kfold_3"}
+    assert set(fold_df["model"].unique()) == {
+        "baseline", "linear", "ridge", "rf", "gbm",
+    }
+    assert set(fold_df["fs"].unique()) == {"A"}
+
+
+def test_small_run_summary_has_5_cells(small_run):
+    """5 models × 1 CV × 1 FS = 5 summary cells."""
+    _, _, summary_df = small_run
+    assert len(summary_df) == 5
+    assert set(summary_df["model"]) == {
+        "baseline", "linear", "ridge", "rf", "gbm",
+    }
+
+
+def test_small_run_metrics_finite(small_run):
+    """MAE and RMSE must be finite (no NaN/Inf)."""
+    _, _, summary_df = small_run
+    assert summary_df["mae_mean"].notna().all()
+    assert summary_df["rmse_mean"].notna().all()
+    assert (summary_df["mae_mean"] >= 0).all()
+    assert (summary_df["rmse_mean"] >= 0).all()
+
+
+# ─── Feature importance ────────────────────────────────────────
+
+def test_small_run_importance_only_rf_gbm(small_run):
+    """Importance is collected for rf and gbm only."""
+    _, importance_df, _ = small_run
+    assert set(importance_df["model"].unique()) == {"rf", "gbm"}
+    assert "feature" in importance_df.columns
+    assert "importance" in importance_df.columns
+    # One row per (fold, model, feature)
+    assert (importance_df["importance"] >= 0).all()
+
+
+# ─── Persistence ───────────────────────────────────────────────
+
+def test_save_results_v2_writes_3_files(small_run, tmp_path):
+    """save_results_v2 writes CSV + JSON + importance CSV."""
+    fold_df, importance_df, summary_df = small_run
+    fold_p, summary_p, importance_p = pipeline_v2.save_results_v2(
+        fold_df, summary_df, importance_df, gold_dir=tmp_path,
+    )
+    assert fold_p.exists() and fold_p.stat().st_size > 0
+    assert summary_p.exists() and summary_p.stat().st_size > 0
+    assert importance_p.exists() and importance_p.stat().st_size > 0
+
+    # JSON is valid + has expected keys
+    data = json.loads(summary_p.read_text(encoding="utf-8"))
+    assert data["generated_by"] == "src.ml.pipeline_v2"
+    assert data["n_cells"] == 5
+    assert data["n_fold_rows"] == 15
