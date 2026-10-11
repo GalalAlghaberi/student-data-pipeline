@@ -13,6 +13,13 @@ Coverage:
   - Error handling (missing parquet)
 
 All tests are offline — safe for CI.
+
+Environment notes:
+  Local dev: all 8 sources present → 1,121 rows, full coverage
+  CI:        only UCI present (base CSVs are gitignored) → 1,044 rows
+
+  7 tests assert 8-source behavior and are gated by @requires_base_sources.
+  The remaining 16 validate UCI-merge behavior in any environment.
 """
 
 from __future__ import annotations
@@ -25,6 +32,34 @@ import pandas as pd
 import pytest
 
 from src.warehouse import silver_merge
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Environmental guards
+# ═══════════════════════════════════════════════════════════════════
+#
+# Local dev: all 8 sources present → 1,121 rows, full coverage
+# CI:        only UCI present (base CSVs are gitignored) → 1,044 rows
+#
+# Tests that assert 8-source behavior are skipped when base sources
+# are absent. The assertion is still valid — it is simply not
+# applicable in a UCI-only environment.
+
+BASE_SOURCE_NAMES = ("api", "csv", "json", "mongodb", "postgres", "scraper", "sqlite")
+
+
+def _base_sources_present() -> bool:
+    """True iff all 7 base *_clean.csv files exist."""
+    return all(
+        (silver_merge.DEFAULT_PROCESSED_DIR / src / f"{src}_clean.csv").exists()
+        for src in BASE_SOURCE_NAMES
+    )
+
+
+requires_base_sources = pytest.mark.skipif(
+    not _base_sources_present(),
+    reason="Requires 7 base sources (CI runs UCI-only; base CSVs are gitignored)",
+)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -71,6 +106,7 @@ def test_report_exists() -> None:
     assert REPORT_PATH.stat().st_size > 0
 
 
+@requires_base_sources
 def test_shape(df: pd.DataFrame) -> None:
     assert df.shape == (EXPECTED_TOTAL, len(silver_merge.UNIFIED_COLUMNS))
 
@@ -83,6 +119,7 @@ def test_column_order(df: pd.DataFrame) -> None:
 # 2. Sources
 # ═══════════════════════════════════════════════════════════════════
 
+@requires_base_sources
 def test_all_sources_present(df: pd.DataFrame) -> None:
     assert set(df["source"].dropna().unique()) == EXPECTED_SOURCES
 
@@ -122,11 +159,13 @@ def test_attendance_range_where_present(df: pd.DataFrame) -> None:
     assert present["attendance_rate"].between(0.0, 1.0).all()
 
 
+@requires_base_sources
 def test_gpa_nan_count(df: pd.DataFrame) -> None:
     """46 NaN = 30 (api) + 8 (postgres) + 8 (sqlite)."""
     assert df["gpa"].isna().sum() == 46
 
 
+@requires_base_sources
 def test_attendance_nan_count(df: pd.DataFrame) -> None:
     assert df["attendance_rate"].isna().sum() == 46
 
@@ -153,6 +192,7 @@ def test_base_sources_have_no_course(df: pd.DataFrame) -> None:
     assert base["score_final"].isna().all()
 
 
+@requires_base_sources
 def test_base_attendance_converted_to_rate(df: pd.DataFrame) -> None:
     """Base sources: attendance (0-100) → attendance_rate (0-1)."""
     base = df[(df["source"] != "uci") & (df["attendance_rate"].notna())]
@@ -165,6 +205,7 @@ def test_base_attendance_converted_to_rate(df: pd.DataFrame) -> None:
 # 5. Quality report
 # ═══════════════════════════════════════════════════════════════════
 
+@requires_base_sources
 def test_report_total_rows(report: dict) -> None:
     assert report["total_rows"] == EXPECTED_TOTAL
 
@@ -173,6 +214,7 @@ def test_report_total_columns(report: dict) -> None:
     assert report["total_columns"] == len(silver_merge.UNIFIED_COLUMNS)
 
 
+@requires_base_sources
 def test_report_sources_complete(report: dict) -> None:
     assert set(report["sources"].keys()) == EXPECTED_SOURCES
 
