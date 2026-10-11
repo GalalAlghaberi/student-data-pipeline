@@ -25,7 +25,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.ml.pipeline_v2 import (
+# Ensure project root is on sys.path when running this file directly.
+# Without this, `python scripts/run_ml_pipeline_v2.py` sets sys.path[0]
+# to the scripts/ directory, and `from src.ml import ...` fails with
+# ModuleNotFoundError. Under pytest this is a no-op.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.ml.pipeline_v2 import (  # noqa: E402
     CV_SCHEMES,
     FEATURE_SETS,
     GOLD_DIR,
