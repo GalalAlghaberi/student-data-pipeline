@@ -5,13 +5,14 @@ pipeline_v2) will add tests in later sub-steps.
 
 Reference: docs/ML_EXPERIMENTS_SCALE.md §3, §4, §9
 """
-
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from src.ml import data_v2
 from src.ml import split_v2
+from src.ml import trainer_v2
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -235,3 +236,99 @@ def test_kfold_5_deterministic(Xy_groups):
     splits1 = [te.tolist() for _, te in cv1.split(X, y)]
     splits2 = [te.tolist() for _, te in cv2.split(X, y)]
     assert splits1 == splits2
+
+
+# ═══════════════════════════════════════════════════════════════
+# B.7.4 — trainer_v2 tests
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.fixture(scope="module")
+def numeric_holdout(uci_df):
+    """Return (X_train, y_train, X_test, y_test) using numeric-only features.
+
+    No OneHot is applied — keeps trainer mechanics tests fast and
+    independent of the encoding pipeline (which lives in pipeline_v2).
+    """
+    numeric_cols = ["attendance_rate", "age", "score_1", "score_2"]
+    X = uci_df[numeric_cols].to_numpy(dtype=float)
+    y = uci_df["gpa"].to_numpy(dtype=float)
+    split = int(len(X) * 0.8)
+    return X[:split], y[:split], X[split:], y[split:]
+
+
+# ─── Registry ──────────────────────────────────────────────────
+
+def test_trainers_v2_registry_complete():
+    """TRAINERS_V2 must contain exactly the 4 documented learners."""
+    assert set(trainer_v2.TRAINERS_V2.keys()) == {
+        "linear", "ridge", "rf", "gbm",
+    }
+
+
+def test_get_trainer_v2_unknown_raises():
+    """get_trainer_v2 raises KeyError on unknown name."""
+    with pytest.raises(KeyError, match="Unknown trainer"):
+        trainer_v2.get_trainer_v2("nonexistent")
+
+
+# ─── RandomForest ──────────────────────────────────────────────
+
+def test_rf_yields_finite_predictions(numeric_holdout):
+    """RandomForest predictions must be finite (no NaN/Inf)."""
+    X_train, y_train, X_test, _ = numeric_holdout
+    preds = trainer_v2.fit_predict_rf(X_train, y_train, X_test)
+    assert preds.shape == (len(X_test),)
+    assert np.isfinite(preds).all()
+
+
+def test_rf_deterministic(numeric_holdout):
+    """Same random_state -> RF predictions agree within float epsilon.
+
+    Note: RandomForestRegressor(n_jobs=-1) uses parallel reduction,
+    which can reorder floating-point additions. Assertions therefore
+    allow ~1e-12 tolerance (not byte-exact) while still catching any
+    real nondeterminism (e.g., unseeded randomness, missing random_state).
+    """
+    X_train, y_train, X_test, _ = numeric_holdout
+    p1 = trainer_v2.fit_predict_rf(X_train, y_train, X_test)
+    p2 = trainer_v2.fit_predict_rf(X_train, y_train, X_test)
+    np.testing.assert_allclose(p1, p2, rtol=1e-12, atol=1e-12)
+
+
+# ─── GradientBoosting ──────────────────────────────────────────
+
+def test_gbm_yields_finite_predictions(numeric_holdout):
+    """GradientBoosting predictions must be finite (no NaN/Inf)."""
+    X_train, y_train, X_test, _ = numeric_holdout
+    preds = trainer_v2.fit_predict_gbm(X_train, y_train, X_test)
+    assert preds.shape == (len(X_test),)
+    assert np.isfinite(preds).all()
+
+
+def test_gbm_deterministic(numeric_holdout):
+    """Same random_state -> GBM predictions agree within float epsilon.
+
+    GBM is single-threaded but we use allclose for consistency with
+    test_rf_deterministic and to be robust to future parallelization.
+    """
+    X_train, y_train, X_test, _ = numeric_holdout
+    p1 = trainer_v2.fit_predict_gbm(X_train, y_train, X_test)
+    p2 = trainer_v2.fit_predict_gbm(X_train, y_train, X_test)
+    np.testing.assert_allclose(p1, p2, rtol=1e-12, atol=1e-12)
+
+
+# ─── Feature importance ────────────────────────────────────────
+
+def test_extract_feature_importance_rf(numeric_holdout):
+    """extract_feature_importance returns dict with correct keys."""
+    X_train, y_train, _, _ = numeric_holdout
+    numeric_cols = ["attendance_rate", "age", "score_1", "score_2"]
+    rf = trainer_v2.make_random_forest()
+    rf.fit(X_train, y_train)
+
+    imps = trainer_v2.extract_feature_importance(rf, numeric_cols)
+    assert set(imps.keys()) == set(numeric_cols)
+    assert all(0.0 <= v <= 1.0 for v in imps.values())
+    # Sum of Gini importances is ~1.0
+    assert abs(sum(imps.values()) - 1.0) < 1e-6
