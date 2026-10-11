@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from src.ml import data_v2
+from src.ml import split_v2
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -93,3 +94,144 @@ def test_groups_has_662_unique_students():
     # 369 multi-record students (from UCI_ETL.md §3.4)
     n_multi = int((groups.value_counts() >= 2).sum())
     assert n_multi == 369
+
+
+# ═══════════════════════════════════════════════════════════════
+# B.7.3 — split_v2 tests
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.fixture(scope="module")
+def uci_df():
+    """Load UCI-only DataFrame (module-scoped for speed)."""
+    return data_v2.load_uci_only()
+
+
+@pytest.fixture(scope="module")
+def Xy_groups(uci_df):
+    """Return (X, y, groups) for FS-A."""
+    return data_v2.build_feature_matrix_v2(uci_df, fs="A")
+
+
+# ─── GroupKFold(5) ──────────────────────────────────────────────
+
+def test_group_kfold_5_yields_5_folds(Xy_groups):
+    """GroupKFold(5) must produce exactly 5 folds."""
+    X, y, groups = Xy_groups
+    cv = split_v2.make_group_kfold_5()
+    splits = list(cv.split(X, y, groups=groups))
+    assert len(splits) == 5
+
+
+def test_group_kfold_5_no_leakage(Xy_groups):
+    """CRITICAL: no student_id appears in both train and test."""
+    X, y, groups = Xy_groups
+    cv = split_v2.make_group_kfold_5()
+    stats = split_v2.assert_no_group_leakage(cv, X, y, groups)
+    assert stats["n_folds"] == 5
+    # Every fold must have non-empty train and test
+    for f in stats["fold_stats"]:
+        assert f["n_train"] > 0
+        assert f["n_test"] > 0
+        assert f["n_train_groups"] > 0
+        assert f["n_test_groups"] > 0
+
+
+# ─── GroupKFold(3) ──────────────────────────────────────────────
+
+def test_group_kfold_3_yields_3_folds(Xy_groups):
+    """GroupKFold(3) must produce exactly 3 folds."""
+    X, y, groups = Xy_groups
+    cv = split_v2.make_group_kfold_3()
+    splits = list(cv.split(X, y, groups=groups))
+    assert len(splits) == 3
+
+
+def test_group_kfold_3_no_leakage(Xy_groups):
+    """Stability check: GroupKFold(3) also enforces group isolation."""
+    X, y, groups = Xy_groups
+    cv = split_v2.make_group_kfold_3()
+    stats = split_v2.assert_no_group_leakage(cv, X, y, groups)
+    assert stats["n_folds"] == 3
+
+
+# ─── KFold(5) — the leak demonstration ──────────────────────────
+
+def test_kfold_5_yields_5_folds(Xy_groups):
+    """KFold(5) must produce exactly 5 folds."""
+    X, y, _ = Xy_groups
+    cv = split_v2.make_kfold_5()
+    splits = list(cv.split(X, y))
+    assert len(splits) == 5
+
+
+def test_kfold_5_balanced_folds(Xy_groups):
+    """KFold(5) splits 1,044 rows into {208, 209}-sized test folds."""
+    X, y, _ = Xy_groups
+    cv = split_v2.make_kfold_5()
+    test_sizes = [len(te) for _, te in cv.split(X, y)]
+    assert all(s in (208, 209) for s in test_sizes), test_sizes
+    assert sum(test_sizes) == 1044
+
+
+# ─── LeaveOneOut (v1 bridge) ────────────────────────────────────
+
+def test_loo_yields_1044_folds(Xy_groups):
+    """LOO on 1,044 rows produces 1,044 folds of size (1043, 1)."""
+    X, y, _ = Xy_groups
+    cv = split_v2.make_loo()
+    splits = list(cv.split(X, y))
+    assert len(splits) == 1044
+    assert all(len(te) == 1 for _, te in splits)
+    assert all(len(tr) == 1043 for tr, _ in splits)
+
+
+# ─── describe_cv metadata ───────────────────────────────────────
+
+def test_describe_cv_group_kfold_5(Xy_groups):
+    """describe_cv returns correct metadata for GroupKFold(5).
+
+    Note: train_sizes and test_sizes are UNIQUE sizes (a sorted set),
+    not per-fold sizes. GroupKFold(5) on 1,044 rows yields:
+      - unique train sizes: [835, 836]
+      - unique test sizes:  [208, 209]
+    """
+    X, y, groups = Xy_groups
+    cv = split_v2.make_group_kfold_5()
+    info = split_v2.describe_cv(cv, n_samples=len(X), groups=groups)
+    assert info["type"] == "GroupKFold"
+    assert info["n_splits"] == 5
+    assert info["n_samples"] == 1044
+    assert info["train_sizes"] == [835, 836]
+    assert info["test_sizes"] == [208, 209]
+
+
+def test_describe_cv_without_groups(Xy_groups):
+    """describe_cv works for non-group splitters (KFold)."""
+    X, y, _ = Xy_groups
+    cv = split_v2.make_kfold_5()
+    info = split_v2.describe_cv(cv, n_samples=len(X))
+    assert info["type"] == "KFold"
+    assert info["n_splits"] == 5
+
+
+# ─── Registry + determinism ─────────────────────────────────────
+
+def test_cv_registry_complete():
+    """CV_SCHEMES must contain exactly the 4 documented schemes."""
+    assert set(split_v2.CV_SCHEMES.keys()) == {
+        "group_kfold_5", "kfold_5", "loo", "group_kfold_3",
+    }
+    assert split_v2.GROUP_AWARE_SCHEMES == frozenset({
+        "group_kfold_5", "group_kfold_3",
+    })
+
+
+def test_kfold_5_deterministic(Xy_groups):
+    """Same random_state → identical splits across calls."""
+    X, y, _ = Xy_groups
+    cv1 = split_v2.make_kfold_5()
+    cv2 = split_v2.make_kfold_5()
+    splits1 = [te.tolist() for _, te in cv1.split(X, y)]
+    splits2 = [te.tolist() for _, te in cv2.split(X, y)]
+    assert splits1 == splits2
