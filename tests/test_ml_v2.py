@@ -5,9 +5,9 @@ pipeline_v2) will add tests in later sub-steps.
 
 Reference: docs/ML_EXPERIMENTS_SCALE.md §3, §4, §9
 """
-from __future__ import annotations
-
 import json
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -17,6 +17,8 @@ from src.ml import pipeline_v2
 from src.ml import split_v2
 from src.ml import trainer_v2
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import run_ml_pipeline_v2  # noqa: E402
 # ═══════════════════════════════════════════════════════════════
 # Test 1 — UCI-only row count
 # ═══════════════════════════════════════════════════════════════
@@ -443,3 +445,33 @@ def test_save_results_v2_writes_3_files(small_run, tmp_path):
     assert data["generated_by"] == "src.ml.pipeline_v2"
     assert data["n_cells"] == 5
     assert data["n_fold_rows"] == 15
+# ═══════════════════════════════════════════════════════════════
+# B.7.6 — CLI tests
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_cli_parse_args_defaults():
+    """Default parse_args returns all FS + all CV schemes."""
+    args = run_ml_pipeline_v2.parse_args([])
+    assert tuple(args.fs) == pipeline_v2.FEATURE_SETS
+    assert tuple(args.cv) == pipeline_v2.CV_SCHEMES
+    assert args.log_level == "INFO"
+    assert args.gold_dir == pipeline_v2.GOLD_DIR
+
+
+def test_cli_parse_args_custom_fs():
+    """--fs restricts feature sets."""
+    args = run_ml_pipeline_v2.parse_args(["--fs", "A"])
+    assert tuple(args.fs) == ("A",)
+
+
+def test_cli_parse_args_custom_cv():
+    """--cv restricts CV schemes."""
+    args = run_ml_pipeline_v2.parse_args(["--cv", "group_kfold_5", "kfold_5"])
+    assert tuple(args.cv) == ("group_kfold_5", "kfold_5")
+
+
+def test_cli_parse_args_invalid_raises():
+    """Invalid choice raises SystemExit (argparse behaviour)."""
+    with pytest.raises(SystemExit):
+        run_ml_pipeline_v2.parse_args(["--fs", "C"])
